@@ -2012,6 +2012,7 @@ function openContact(id){
       <a href="tel:${c.phone.replace(/\D/g,'')}" style="flex:1;text-decoration:none"><button class="btn-primary" style="margin-top:0;background:var(--success)">📞 Call</button></a>
     </div>
     <button class="btn-pay" style="margin-top:8px" onclick="buildQuoteForContact(${c.id})">📋 Build Quote</button>
+    <button class="btn-danger" style="margin-top:8px;width:100%" onclick="deleteContact(${c.id})">🗑️ Delete Contact</button>
     <div style="margin-top:16px">
       <div class="cl-title">Change Status</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
@@ -2025,6 +2026,14 @@ function changeContactStatus(id,status){
   const c=contacts.find(x=>x.id===id);c.status=status;
   closeModal('contact-modal');renderCRM();
   showToast(`${c.first} marked as ${status}! ✓`);
+}
+
+function deleteContact(id){
+  const c=contacts.find(x=>x.id===id);
+  if(!confirm(`Delete ${c.first} ${c.last}? This cannot be undone.`))return;
+  contacts=contacts.filter(x=>x.id!==id);
+  closeModal('contact-modal');renderCRM();
+  showToast(`${c.first} deleted! 🗑️`);
 }
 
 function buildQuoteForContact(id){
