@@ -523,11 +523,20 @@ textarea.form-input{resize:none;min-height:80px}
   <!-- SCHEDULE TAB -->
   <div id="tab-schedule" class="content">
     <div style="margin-bottom:10px"><div class="section-title">Schedule</div><div class="section-sub" id="schedule-sub">Today</div></div>
-    <div class="view-toggle">
-      <button class="vt-btn active" id="vt-day" onclick="setView('day')">📋 Day</button>
-      <button class="vt-btn" id="vt-week" onclick="setView('week')">📅 Week</button>
-      <button class="vt-btn" id="vt-month" onclick="setView('month')">🗓 Month</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0">
+      <div class="view-toggle" style="flex:1">
+        <button class="vt-btn active" id="vt-day" onclick="setView('day')">📋 Day</button>
+        <button class="vt-btn" id="vt-week" onclick="setView('week')">📅 Week</button>
+        <button class="vt-btn" id="vt-month" onclick="setView('month')">🗓 Month</button>
+      </div>
+      <button onclick="toggleSchedSearch()" style="background:#fff;border:none;border-radius:12px;width:40px;height:40px;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🔍</button>
     </div>
+    <div id="sched-search-bar" class="hidden" style="margin-top:8px;display:flex;align-items:center;background:#fff;border-radius:12px;padding:10px 14px;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+      <span style="color:var(--soft)">🔍</span>
+      <input type="text" id="sched-search-input" placeholder="Search client..." oninput="schedSearch()" style="border:none;outline:none;flex:1;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;color:var(--dark);background:none">
+      <button onclick="clearSchedSearch()" style="background:none;border:none;color:var(--soft);font-size:18px;cursor:pointer;padding:0;line-height:1">✕</button>
+    </div>
+    <div id="sched-search-results" class="hidden" style="margin-top:8px"></div>
     <div id="view-day"><div class="date-strip" id="date-strip"></div><div id="jobs-list"></div></div>
     <div id="view-week" class="hidden">
       <div class="week-nav"><button class="wnav-btn" onclick="changeWeek(-1)">‹</button><span class="week-title" id="week-title"></span><button class="wnav-btn" onclick="changeWeek(1)">›</button></div>
@@ -535,7 +544,7 @@ textarea.form-input{resize:none;min-height:80px}
     </div>
     <div id="view-month" class="hidden">
       <div class="month-nav"><button class="mnav-btn" onclick="changeMonth(-1)">‹</button><span class="month-title" id="month-title"></span><button class="mnav-btn" onclick="changeMonth(1)">›</button></div>
-      <div class="month-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+      <div class="month-dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
       <div class="month-grid" id="month-grid"></div>
     </div>
   </div>
@@ -1003,6 +1012,7 @@ Landscaping</textarea>
 <script>
 // ============ CONSTANTS ============
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYS_MON=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const COLORS=['#2e7ab0','#3a8a5a','#7a4a9a','#8a4a2a','#2a5a8a','#b04a6a'];
 const CHECKLIST=['Make beds / change linens','Vacuum all rooms','Mop floors','Clean bathrooms (toilet, sink, shower)','Clean kitchen (counters, sink, stove)','Wipe mirrors & surfaces','Check trash under kitchen sink','Empty all trash bins','Wipe ceiling fans','Final walkthrough'];
@@ -1073,7 +1083,7 @@ const fmt=d=>d.toISOString().split('T')[0];
 const addD=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
 const fmtT=t=>{if(!t)return'';if(t.includes('AM')||t.includes('PM'))return t;const[h,m]=t.split(':').map(Number);if(isNaN(h)||isNaN(m))return t;return`${h%12||12}:${m.toString().padStart(2,'0')} ${h>=12?'PM':'AM'}`;};
 const fmtTime12=()=>{const n=new Date();let h=n.getHours(),m=n.getMinutes();const ap=h>=12?'PM':'AM';return`${h%12||12}:${m.toString().padStart(2,'0')} ${ap}`;};
-const weekOf=d=>{const r=new Date(d);r.setDate(r.getDate()-r.getDay());return r;};
+const weekOf=d=>{const r=new Date(d);const day=r.getDay();const diff=day===0?-6:1-day;r.setDate(r.getDate()+diff);return r;};
 
 // ============ INIT JOBS ============
 function initJobs(){
@@ -1375,7 +1385,9 @@ function renderSched(){
 // ============ DAY VIEW ============
 function renderDay(){
   let h='';
-  for(let i=-1;i<=6;i++){const d=addD(new Date(),i),ds=fmt(d);const has=jobs.some(j=>j.date===ds),isSel=ds===fmt(selDate);h+=`<div class="date-chip ${isSel?'active':''} ${has?'has-jobs':''}" onclick="pickDate('${ds}')"><span class="dn">${DAYS[d.getDay()]}</span><span class="dd">${d.getDate()}</span></div>`;}
+  // Build 7-day strip starting from Monday of current week
+const today=new Date(),todayMon=weekOf(today);
+for(let i=0;i<7;i++){const d=addD(todayMon,i),ds=fmt(d);const has=jobs.some(j=>j.date===ds),isSel=ds===fmt(selDate);h+=`<div class="date-chip ${isSel?'active':''} ${has?'has-jobs':''}" onclick="pickDate('${ds}')"><span class="dn">${DAYS[d.getDay()]}</span><span class="dd">${d.getDate()}</span></div>`;}
   document.getElementById('date-strip').innerHTML=h;
   renderJobs();
 }
@@ -1424,7 +1436,9 @@ function renderMonth(){
   const y=monthDate.getFullYear(),m=monthDate.getMonth();
   document.getElementById('month-title').textContent=`${MONTHS[m]} ${y}`;
   const first=new Date(y,m,1),last=new Date(y,m+1,0),td=fmt(new Date());let cells=[];
-  for(let i=0;i<first.getDay();i++)cells.push({d:addD(first,-(first.getDay()-i)),o:true});
+  // Start from Monday: getDay() returns 0=Sun,1=Mon...6=Sat. Mon offset = (getDay()+6)%7
+  const firstDow=(first.getDay()+6)%7;
+  for(let i=0;i<firstDow;i++)cells.push({d:addD(first,-(firstDow-i)),o:true});
   for(let n=1;n<=last.getDate();n++)cells.push({d:new Date(y,m,n),o:false});
   while(cells.length%7!==0)cells.push({d:addD(cells[cells.length-1].d,1),o:true});
   document.getElementById('month-grid').innerHTML=cells.map(({d,o})=>{const ds=fmt(d),dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const MAX=2;const shown=dj.slice(0,MAX).map(j=>{const c=clients.find(x=>x.id===j.clientId);return`<div style="display:flex;align-items:center;gap:2px;margin-bottom:1px"><div style="width:5px;height:5px;border-radius:50%;background:${j.status==='done'?'var(--success)':'var(--blue)'};flex-shrink:0"></div><span style="font-size:9px;font-weight:700;color:var(--blue-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px">${c?.first||''}</span></div>`;}).join('');const more=dj.length>MAX?`<div class="mmore">+${dj.length-MAX}</div>`:'';return`<div class="month-cell ${o?'other-m':''} ${ds===td?'today-c':''}" onclick="${!o?`openMDay('${ds}')`:'void 0'}" id="mc-${ds}"><div class="mcnum">${d.getDate()}</div>${shown}${more}</div>`;}).join('');
@@ -2379,6 +2393,51 @@ function deleteJob(){
   openDeleteSeries(id);
 }
 // saveEditJob consolidated above
+
+
+// ============ SCHEDULE SEARCH ============
+function toggleSchedSearch(){
+  const bar=document.getElementById('sched-search-bar');
+  const res=document.getElementById('sched-search-results');
+  if(bar.classList.contains('hidden')){
+    bar.classList.remove('hidden');
+    bar.style.display='flex';
+    setTimeout(()=>document.getElementById('sched-search-input').focus(),100);
+  } else {
+    bar.classList.add('hidden');
+    bar.style.display='none';
+    res.classList.add('hidden');
+    res.style.display='none';
+    document.getElementById('sched-search-input').value='';
+  }
+}
+function clearSchedSearch(){
+  document.getElementById('sched-search-input').value='';
+  const res=document.getElementById('sched-search-results');
+  res.classList.add('hidden');
+  res.style.display='none';
+}
+function schedSearch(){
+  const q=document.getElementById('sched-search-input').value.toLowerCase().trim();
+  const res=document.getElementById('sched-search-results');
+  if(!q){res.classList.add('hidden');res.style.display='none';return;}
+  const matched=clients.filter(c=>(c.first+' '+c.last).toLowerCase().includes(q));
+  if(!matched.length){
+    res.innerHTML=`<div style="text-align:center;padding:16px;color:var(--soft);font-weight:700">No clients found</div>`;
+    res.classList.remove('hidden');res.style.display='block';return;
+  }
+  const today=fmt(new Date());
+  res.innerHTML=matched.map(c=>{
+    const upcoming=jobs.filter(j=>j.clientId===c.id&&j.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+    const next=upcoming[0];
+    const nextTxt=next?`<span style="font-size:11px;color:var(--blue-dark);font-weight:700">📅 ${new Date(next.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} ${fmtT(next.time)}</span>`:`<span style="font-size:11px;color:var(--soft)">No upcoming jobs</span>`;
+    return`<div onclick="openClient(${c.id})" style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:6px;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-weight:800;color:var(--dark)">${c.first} ${c.last}</div>${nextTxt}</div>
+      <span style="color:var(--soft);font-size:18px">›</span>
+    </div>`;
+  }).join('');
+  res.classList.remove('hidden');res.style.display='block';
+}
 
 // ============ FINANCE ============
 let financeMonth=new Date();
