@@ -1097,7 +1097,7 @@ let notifications=[];
 // ============ HELPERS ============
 const fmt=d=>d.toISOString().split('T')[0];
 const addD=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
-const fmtT=t=>{const[h,m]=t.split(':').map(Number);return`${h%12||12}:${m.toString().padStart(2,'0')} ${h>=12?'PM':'AM'}`;};
+const fmtT=t=>{if(!t)return'';if(t.includes('AM')||t.includes('PM'))return t;const[h,m]=t.split(':').map(Number);if(isNaN(h)||isNaN(m))return t;return`${h%12||12}:${m.toString().padStart(2,'0')} ${h>=12?'PM':'AM'}`;};
 const fmtTime12=()=>{const n=new Date();let h=n.getHours(),m=n.getMinutes();const ap=h>=12?'PM':'AM';return`${h%12||12}:${m.toString().padStart(2,'0')} ${ap}`;};
 const weekOf=d=>{const r=new Date(d);r.setDate(r.getDate()-r.getDay());return r;};
 
