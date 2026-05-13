@@ -1165,7 +1165,7 @@ function doSignIn(){
     signInWithEmailAndPassword(auth, email, pass)
       .then((userCred)=>{
         // Determine role based on email
-        const r = email === 'avcleaninglv@gmail.com' ? 'owner' : 'team';
+        const r = email === 'avcleaninglasvegas@gmail.com' ? 'owner' : 'team';
         const name = email.split('@')[0];
         if(pinRole==='owner'&&r!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
         if(pinRole==='team'&&r==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
