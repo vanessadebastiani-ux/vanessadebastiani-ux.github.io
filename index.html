@@ -1054,7 +1054,7 @@ let clients=[
   {id:37,first:'Ethan',last:'',address:'11001 Edina Court, Las Vegas NV 89144',gate:'',door:'',phone:'(725) 250-9484',freq:'Bi-weekly',price:160,notes:'Australiano Cali',color:COLORS[0]},
   {id:38,first:'Roberto',last:'',address:'2600 Sidonia Ave, Las Vegas NV',gate:'',door:'',phone:'(725) 314-4659',freq:'Bi-weekly',price:200,notes:'',color:COLORS[1]},
   {id:39,first:'Melanie',last:'',address:'Las Vegas NV',gate:'',door:'',phone:'(702) 883-4919',freq:'Bi-weekly',price:220,notes:'',color:COLORS[2]},
-  {id:40,first:'Pamela',last:'',address:'Las Vegas NV',gate:'',door:'',phone:'(949) 874-6906',freq:'',price:0,notes:'',color:COLORS[3]},
+  {id:40,first:'Pamela',last:'',address:'8438 Alberta Falls Ave, Las Vegas NV',gate:'',door:'',phone:'(949) 874-6906',freq:'',price:0,notes:'',color:COLORS[3]},
   {id:41,first:'Kayla',last:'',address:'2251 Thoroughbred Rd, Henderson NV 89002',gate:'',door:'5744',phone:'(702) 686-9802',freq:'',price:0,notes:'Door 5744',color:COLORS[4]},
   {id:42,first:'Cali',last:'',address:'Las Vegas NV',gate:'',door:'',phone:'(702) 861-3772',freq:'',price:0,notes:'Agenda sob demanda',color:COLORS[5]}
 ];
@@ -1065,34 +1065,7 @@ let teamMembers=[
   {name:'Vanessa (Owner)',role:'Owner',clockEnabled:false,clockIn:null,clockOut:null}
 ];
 
-let jobs=[{id:1001,clientId:24,date:'2026-05-13',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Weekly',customDays:[],seriesId:'series-kris-weekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1002,clientId:17,date:'2026-05-13',time:'12:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-stacy-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1003,clientId:29,date:'2026-05-13',time:'4:30 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Every 3 weeks',customDays:[],seriesId:'series-geovanna-3weeks',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1004,clientId:23,date:'2026-05-14',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Every 3 weeks',customDays:[],seriesId:'series-natalie-3weeks',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1005,clientId:7,date:'2026-05-14',time:'12:30 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Every 3 weeks',customDays:[],seriesId:'series-nicole-3weeks',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1006,clientId:42,date:'2026-05-14',time:'4:30 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'none',customDays:[],seriesId:'series-cali-1',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1007,clientId:14,date:'2026-05-15',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-erik-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1008,clientId:27,date:'2026-05-15',time:'1:30 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Monthly',customDays:[],seriesId:'series-marisol-monthly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1028,clientId:19,date:'2026-05-15',time:'4:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Monthly',customDays:[],seriesId:'series-jasmine-monthly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1009,clientId:38,date:'2026-05-16',time:'10:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'none',customDays:[],seriesId:'series-melanie-1',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1010,clientId:4,date:'2026-05-19',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Weekly',customDays:[],seriesId:'series-brian-weekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1011,clientId:3,date:'2026-05-19',time:'1:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Monthly',customDays:[],seriesId:'series-momo-monthly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1012,clientId:10,date:'2026-05-19',time:'4:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-karissa-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1013,clientId:15,date:'2026-05-20',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Monthly',customDays:[],seriesId:'series-kristina-monthly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1014,clientId:24,date:'2026-05-20',time:'12:30 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Weekly',customDays:[],seriesId:'series-kris-weekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1015,clientId:21,date:'2026-05-20',time:'4:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-kirstin-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1016,clientId:25,date:'2026-05-21',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Every 3 weeks',customDays:[],seriesId:'series-trung-3weeks',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1017,clientId:26,date:'2026-05-21',time:'1:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Monthly',customDays:[],seriesId:'series-fabi-monthly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1018,clientId:11,date:'2026-05-21',time:'4:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-raquel-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1019,clientId:2,date:'2026-05-22',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-keith-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1020,clientId:5,date:'2026-05-22',time:'1:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-alan-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1021,clientId:37,date:'2026-05-22',time:'4:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-roberto-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1022,clientId:30,date:'2026-05-25',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-denise-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1023,clientId:28,date:'2026-05-25',time:'1:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-berenice-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1024,clientId:1,date:'2026-05-25',time:'3:30 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Every 3 weeks',customDays:[],seriesId:'series-julia-3weeks',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1025,clientId:4,date:'2026-05-26',time:'9:00 AM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Weekly',customDays:[],seriesId:'series-brian-weekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1026,clientId:9,date:'2026-05-26',time:'1:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-mary-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null},
-  {id:1027,clientId:8,date:'2026-05-26',time:'4:00 PM',assign:'Renata & Juliano',status:'todo',cl:[{t:'Vacuum all rooms',d:false},{t:'Mop floors',d:false},{t:'Clean bathrooms',d:false},{t:'Clean kitchen',d:false},{t:'Wipe counters',d:false},{t:'Take out trash',d:false},{t:'Dust surfaces',d:false},{t:'Clean mirrors',d:false}],paid:false,recurrence:'Bi-weekly',customDays:[],seriesId:'series-nita-biweekly',notifSent:{confirm:false,reminder:false,complete:false},clockIn:null,clockOut:null}];
+let jobs=[];
 let notifications=[];
 
 // ============ HELPERS ============
@@ -1102,43 +1075,9 @@ const fmtT=t=>{if(!t)return'';if(t.includes('AM')||t.includes('PM'))return t;con
 const fmtTime12=()=>{const n=new Date();let h=n.getHours(),m=n.getMinutes();const ap=h>=12?'PM':'AM';return`${h%12||12}:${m.toString().padStart(2,'0')} ${ap}`;};
 const weekOf=d=>{const r=new Date(d);r.setDate(r.getDate()-r.getDay());return r;};
 
-// ============ INIT JOBS (with recurrence) ============
+// ============ INIT JOBS ============
 function initJobs(){
-  const t=new Date();
-  const base=[
-    {clientId:1,time:'09:00',assign:'Juliano & Renata',freq:'biweekly'},
-    {clientId:2,time:'12:00',assign:'Renata',freq:'weekly'},
-    {clientId:3,time:'14:30',assign:'Juliano & Renata',freq:'monthly'},
-    {clientId:4,time:'10:00',assign:'Juliano & Renata',freq:'biweekly'},
-  ];
-  let id=1;
-  base.forEach(b=>{
-    // generate occurrences for 6 weeks
-    for(let w=0;w<6;w++){
-      let skip=false;
-      if(b.freq==='weekly') skip=false;
-      else if(b.freq==='biweekly') skip=(w%2!==0);
-      else if(b.freq==='monthly') skip=(w!==0&&w!==4);
-      if(skip)continue;
-      const d=addD(t,w*7-(t.getDay()>1?1:0));
-      // make first occurrence "done" for demo
-      const status=w===0&&b.clientId<=2?'done':'todo';
-      const paid=w===0&&b.clientId===2;
-      jobs.push({
-        id:id++,clientId:b.clientId,date:fmt(d),time:b.time,assign:b.assign,
-        status,cl:CHECKLIST.map(x=>({t:x,d:status==='done'})),paid,
-        recurrence:b.freq,seriesId:`series-${b.clientId}`,
-        notifSent:{confirm:true,reminder:w>0?false:true,complete:status==='done'},
-        clockIn:status==='done'?b.time:null,clockOut:status==='done'?addMins(b.time,120):null
-      });
-    }
-  });
-  // Seed some notifications
-  notifications=[
-    {type:'confirm',msg:'Confirmation sent to Jennifer Martinez',sub:'Bi-weekly · Tomorrow 9:00 AM',time:'Yesterday 8:00 PM',sent:true},
-    {type:'remind',msg:'Reminder sent to Robert Chen',sub:'Cleaning today at 12:00 PM',time:'Today 8:00 AM',sent:true},
-    {type:'complete',msg:'Job complete notification → Patricia Williams',sub:'Payment of $220 requested',time:'Today 2:45 PM',sent:true},
-  ];
+  // Schedule starts empty - jobs are added manually
 }
 
 function addMins(timeStr,mins){
@@ -1555,7 +1494,7 @@ function openJob(id){
   // OWNER: edit & delete buttons
   const mgmt=document.getElementById('job-mgmt-btns');
   if(role==='owner'){
-    mgmt.innerHTML=`<button class="btn-secondary" style="color:var(--blue-dark);border-color:var(--blue-mid);margin-top:6px" onclick="openEditJob(${j.id})">✏️ Edit Job</button><button class="btn-danger" onclick="confirmDeleteJob(${j.id})">🗑️ Delete Job</button>`;
+    mgmt.innerHTML=`<button class="btn-secondary" style="color:var(--blue-dark);border-color:var(--blue-mid);margin-top:6px" onclick="openEditJob(${j.id})">✏️ Edit Job</button><button class="btn-danger" onclick="openDeleteSeries(${j.id})">🗑️ Delete Job</button>`;
   } else { mgmt.innerHTML=''; }
 
   resetOMW();openModal('job-modal');
@@ -2136,6 +2075,22 @@ function saveQuotePDF(){
   </div>
 
   <script>window.onload=function(){window.print();}<\/script>
+
+<!-- SERIES ACTION MODAL -->
+<div class="modal-overlay hidden" id="series-modal" onclick="closeModal('series-modal')">
+  <div class="modal-card" onclick="event.stopPropagation()" style="max-width:320px">
+    <div class="modal-header">
+      <div class="modal-title" id="series-modal-title">Recurring Job</div>
+      <button class="modal-close" onclick="closeModal('series-modal')">✕</button>
+    </div>
+    <div style="padding:16px">
+      <p id="series-modal-sub" style="color:var(--soft);font-size:14px;margin-bottom:16px;text-align:center"></p>
+      <button id="series-btn-this" class="btn-secondary" style="width:100%;margin-bottom:10px;padding:14px;font-size:15px"></button>
+      <button id="series-btn-future" class="btn-danger" style="width:100%;padding:14px;font-size:15px"></button>
+      <button class="btn-secondary" style="width:100%;margin-top:10px;color:var(--soft)" onclick="closeModal('series-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>`;
 
@@ -2192,7 +2147,7 @@ let contacts=[
   {id:36,first:'Ethan',last:'',phone:'(725) 250-9484',addr:'11001 Edina Court, Las Vegas NV 89144',status:'active',notes:'Bi-weekly. Australiano Cali.',added:'2026-05-13'},
   {id:37,first:'Roberto',last:'',phone:'(725) 314-4659',addr:'2600 Sidonia Ave, Las Vegas NV',status:'active',notes:'Bi-weekly.',added:'2026-05-13'},
   {id:38,first:'Melanie',last:'',phone:'(702) 883-4919',addr:'Las Vegas NV',status:'active',notes:'Bi-weekly.',added:'2026-05-13'},
-  {id:39,first:'Pamela',last:'',phone:'(949) 874-6906',addr:'Las Vegas NV',status:'active',notes:'',added:'2026-05-13'},
+  {id:39,first:'Pamela',last:'',phone:'(949) 874-6906',addr:'8438 Alberta Falls Ave, Las Vegas NV',status:'active',notes:'',added:'2026-05-13'},
   {id:40,first:'Kayla',last:'',phone:'(702) 686-9802',addr:'2251 Thoroughbred Rd, Henderson NV 89002',status:'active',notes:'Door 5744.',added:'2026-05-13'},
   {id:42,first:'Cali',last:'',phone:'(702) 861-3772',addr:'Las Vegas NV',status:'active',notes:'Agenda sob demanda.',added:'2026-05-13'}
 ];
@@ -2384,22 +2339,43 @@ function saveEditJob(){
   renderSched(); renderStats();
 }
 
-function confirmDeleteJob(id){
+function openDeleteSeries(id){
   const j=jobs.find(x=>x.id===id);
-  const c=clients.find(x=>x.id===j?.clientId);
-  if(!confirm(`Delete this job for ${c?.first||'client'}? This cannot be undone.`)) return;
-  jobs=jobs.filter(x=>x.id!==id);
-  closeModal('job-modal');
-  showToast('Job deleted');
-  renderSched(); renderStats();
+  if(!j) return;
+  const hasSeries=j.seriesId&&jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date).length>1;
+  if(hasSeries){
+    document.getElementById('series-modal-title').textContent='Delete Job';
+    document.getElementById('series-modal-sub').textContent='This job is part of a recurring series.';
+    document.getElementById('series-btn-this').textContent='🗑️ Delete only this';
+    document.getElementById('series-btn-future').textContent='🗑️ Delete this + all future';
+    document.getElementById('series-btn-this').onclick=()=>{ jobs=jobs.filter(x=>x.id!==id); closeModal('series-modal'); closeModal('job-modal'); closeModal('edit-job-modal'); showToast('Job deleted'); renderSched(); renderStats(); };
+    document.getElementById('series-btn-future').onclick=()=>{ jobs=jobs.filter(x=>!(x.seriesId===j.seriesId&&x.date>=j.date)); closeModal('series-modal'); closeModal('job-modal'); closeModal('edit-job-modal'); showToast('Recurring jobs deleted'); renderSched(); renderStats(); };
+    openModal('series-modal');
+  } else {
+    jobs=jobs.filter(x=>x.id!==id);
+    closeModal('job-modal'); closeModal('edit-job-modal');
+    showToast('Job deleted'); renderSched(); renderStats();
+  }
 }
+function openMoveSeries(id, newDate){
+  const j=jobs.find(x=>x.id===id);
+  if(!j) return;
+  const hasSeries=j.seriesId&&jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date).length>1;
+  if(hasSeries){
+    document.getElementById('series-modal-title').textContent='Move Job';
+    document.getElementById('series-modal-sub').textContent='This job is part of a recurring series.';
+    document.getElementById('series-btn-this').textContent='📅 Move only this';
+    document.getElementById('series-btn-future').textContent='📅 Move this + all future';
+    document.getElementById('series-btn-this').onclick=()=>{ j.date=newDate; closeModal('series-modal'); showToast('Job moved'); renderSched(); renderStats(); };
+    document.getElementById('series-btn-future').onclick=()=>{ const diff=dayDiff(j.date,newDate); jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date).forEach(x=>{x.date=addD(new Date(x.date+'T12:00:00'),diff) instanceof Date?fmt(addD(new Date(x.date+'T12:00:00'),diff)):x.date;}); closeModal('series-modal'); showToast('Series moved'); renderSched(); renderStats(); };
+    openModal('series-modal');
+  } else { j.date=newDate; showToast('Job moved'); renderSched(); renderStats(); }
+}
+function dayDiff(d1,d2){ return Math.round((new Date(d2+'T12:00:00')-new Date(d1+'T12:00:00'))/(1000*60*60*24)); }
+function confirmDeleteJob(id){ openDeleteSeries(id); }
 function deleteJob(){
   const id=parseInt(document.getElementById('ej-id').value);
-  if(!confirm('Delete this job? This cannot be undone.')) return;
-  jobs=jobs.filter(x=>x.id!==id);
-  closeModal('edit-job-modal');
-  showToast('Job deleted');
-  renderSched(); renderStats();
+  openDeleteSeries(id);
 }
 
 // ============ FINANCE ============
@@ -2522,5 +2498,21 @@ function exportFinance(){
 // ============ INIT ============
 initJobs();weekStart=weekOf(new Date());monthDate=new Date();
 </script>
+
+<!-- SERIES ACTION MODAL -->
+<div class="modal-overlay hidden" id="series-modal" onclick="closeModal('series-modal')">
+  <div class="modal-card" onclick="event.stopPropagation()" style="max-width:320px">
+    <div class="modal-header">
+      <div class="modal-title" id="series-modal-title">Recurring Job</div>
+      <button class="modal-close" onclick="closeModal('series-modal')">✕</button>
+    </div>
+    <div style="padding:16px">
+      <p id="series-modal-sub" style="color:var(--soft);font-size:14px;margin-bottom:16px;text-align:center"></p>
+      <button id="series-btn-this" class="btn-secondary" style="width:100%;margin-bottom:10px;padding:14px;font-size:15px"></button>
+      <button id="series-btn-future" class="btn-danger" style="width:100%;padding:14px;font-size:15px"></button>
+      <button class="btn-secondary" style="width:100%;margin-top:10px;color:var(--soft)" onclick="closeModal('series-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
