@@ -6,6 +6,90 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="apple-touch-icon.png">
 <title>AV Cleaning</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXiNzgwX9ubfEzmok0HOZRJTB9tEXGO78",
+    authDomain: "av-cleaning-lv.firebaseapp.com",
+    projectId: "av-cleaning-lv",
+    storageBucket: "av-cleaning-lv.firebasestorage.app",
+    messagingSenderId: "186275458742",
+    appId: "1:186275458742:web:0c75ed559cdbf257184017",
+    measurementId: "G-8M0B9381M2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  window._fb = { db, auth, collection, doc, setDoc, getDoc, onSnapshot, deleteDoc, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
+
+  // Save data to Firestore
+  window.fbSave = async function(colName, id, data) {
+    try {
+      const { db, doc, setDoc, collection } = window._fb;
+      await setDoc(doc(collection(db, colName), String(id)), data);
+    } catch(e) { console.error('fbSave error:', e); }
+  };
+
+  window.fbDelete = async function(colName, id) {
+    try {
+      const { db, doc, deleteDoc, collection } = window._fb;
+      await deleteDoc(doc(collection(db, colName), String(id)));
+    } catch(e) { console.error('fbDelete error:', e); }
+  };
+
+  window.fbLoad = async function(colName) {
+    try {
+      const { db, collection, onSnapshot } = window._fb;
+      return new Promise((resolve) => {
+        onSnapshot(collection(db, colName), (snap) => {
+          const data = snap.docs.map(d => d.data());
+          resolve(data);
+        });
+      });
+    } catch(e) { console.error('fbLoad error:', e); return []; }
+  };
+
+  // Auth state
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      window._fbUser = user;
+      // Load all data from Firestore
+      try {
+        const { db, collection, onSnapshot } = window._fb;
+        
+        onSnapshot(collection(db, 'clients'), (snap) => {
+          if (!snap.empty) {
+            clients = snap.docs.map(d => d.data());
+            if (typeof renderClients === 'function') renderClients();
+            if (typeof renderSchedule === 'function') renderSchedule();
+          }
+        });
+
+        onSnapshot(collection(db, 'contacts'), (snap) => {
+          if (!snap.empty) {
+            contacts = snap.docs.map(d => d.data());
+            if (typeof renderCRM === 'function') renderCRM();
+          }
+        });
+
+        onSnapshot(collection(db, 'jobs'), (snap) => {
+          if (!snap.empty) {
+            jobs = snap.docs.map(d => d.data());
+            if (typeof renderSchedule === 'function') renderSchedule();
+          }
+        });
+
+      } catch(e) { console.error('Load error:', e); }
+    } else {
+      window._fbUser = null;
+    }
+  });
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1074,17 +1158,42 @@ function doSignIn(){
   errEl.textContent='';
   if(!email){errEl.textContent='Por favor, digite seu email';return;}
   if(!pass){errEl.textContent='Por favor, digite sua senha';return;}
+  
+  // Try Firebase Auth first
+  if(window._fb){
+    const {auth, signInWithEmailAndPassword} = window._fb;
+    signInWithEmailAndPassword(auth, email, pass)
+      .then((userCred)=>{
+        // Determine role based on email
+        const r = email === 'avcleaninglv@gmail.com' ? 'owner' : 'team';
+        const name = email.split('@')[0];
+        if(pinRole==='owner'&&r!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
+        if(pinRole==='team'&&r==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
+        if(save){localStorage.setItem('av_saved_user',JSON.stringify({email,role:r,name}));tryRegisterBiometric({email,role:r,name});}
+        else{localStorage.removeItem('av_saved_user');}
+        finishLogin({role:r,name});
+      })
+      .catch((err)=>{
+        // Fallback to local users
+        const user=users.find(u=>u.email.toLowerCase()===email&&u.pass===pass);
+        if(!user){errEl.textContent='Email ou senha incorretos. Tente novamente.';return;}
+        if(pinRole==='owner'&&user.role!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
+        if(pinRole==='team'&&user.role==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
+        if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));tryRegisterBiometric(user);}
+        else{localStorage.removeItem('av_saved_user');}
+        finishLogin(user);
+      });
+    return;
+  }
+  
+  // Local fallback
   const user=users.find(u=>u.email.toLowerCase()===email&&u.pass===pass);
   if(!user){errEl.textContent='Email ou senha incorretos. Tente novamente.';return;}
   if(pinRole==='owner'&&user.role!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
   if(pinRole==='team'&&user.role==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
   try{
-    if(save){
-      localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));
-      tryRegisterBiometric(user);
-    } else {
-      localStorage.removeItem('av_saved_user');
-    }
+    if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));tryRegisterBiometric(user);}
+    else{localStorage.removeItem('av_saved_user');}
   }catch(e){}
   finishLogin(user);
 }
@@ -1098,6 +1207,34 @@ function doRegister(){
   if(!email||!email.includes('@')){errEl.textContent='Please enter a valid email';return;}
   if(!pass||pass.length<4){errEl.textContent='Password must be at least 4 characters';return;}
   if(users.find(u=>u.email.toLowerCase()===email)){errEl.textContent='This email is already registered';return;}
+  // Register with Firebase Auth
+  if(window._fb){
+    const {auth, createUserWithEmailAndPassword, db, doc, setDoc, collection} = window._fb;
+    createUserWithEmailAndPassword(auth, email, pass)
+      .then(()=>{
+        const role=pinRole==='team'?'team':'owner';
+        users.push({name,email,pass,role});
+        // Save user profile to Firestore
+        if(window.fbSave) fbSave('users', email.replace('@','_').replace('.','_'), {name,email,role});
+        showToast(`${name} registered! Now sign in 🎉`);
+        switchPinTab('signin');
+        document.getElementById('si-email').value=email;
+        document.getElementById('si-pw').value='';
+      })
+      .catch((err)=>{
+        if(err.code==='auth/email-already-in-use'){
+          // Already registered in Firebase, just add locally
+          users.push({name,email,pass,role:pinRole==='team'?'team':'owner'});
+          showToast(`${name} registered! Now sign in 🎉`);
+          switchPinTab('signin');
+          document.getElementById('si-email').value=email;
+          document.getElementById('si-pw').value='';
+        } else {
+          document.getElementById('reg-error').textContent='Erro ao registrar. Tente novamente.';
+        }
+      });
+    return;
+  }
   users.push({name,email,pass,role:pinRole==='team'?'team':'owner'});
   showToast(`${name} registered! Now sign in 🎉`);
   switchPinTab('signin');
@@ -1491,6 +1628,7 @@ function deleteClient(id){
   const c=clients.find(x=>x.id===id);
   if(!confirm(`Delete ${c.first} ${c.last}? This cannot be undone.`)) return;
   clients=clients.filter(x=>x.id!==id);
+  if(window.fbDelete) fbDelete('clients', id);
   closeModal('client-modal');
   showToast(`${c.first} deleted`);
   renderClients(); renderStats();
@@ -1499,7 +1637,9 @@ function openAddClient(){['f-first','f-last','f-addr','f-gate','f-door','f-phone
 function saveClient(){
   const first=document.getElementById('f-first').value.trim(),last=document.getElementById('f-last').value.trim();
   if(!first||!last){showToast('Name is required!');return;}
-  clients.push({id:Date.now(),first,last,address:document.getElementById('f-addr').value.trim(),gate:document.getElementById('f-gate').value.trim(),door:document.getElementById('f-door').value.trim(),phone:document.getElementById('f-phone').value.trim(),freq:document.getElementById('f-freq').value,price:parseInt(document.getElementById('f-price').value)||0,notes:document.getElementById('f-notes').value.trim(),color:COLORS[clients.length%COLORS.length]});
+  const newClient={id:Date.now(),first,last,address:document.getElementById('f-addr').value.trim(),gate:document.getElementById('f-gate').value.trim(),door:document.getElementById('f-door').value.trim(),phone:document.getElementById('f-phone').value.trim(),freq:document.getElementById('f-freq').value,price:parseInt(document.getElementById('f-price').value)||0,notes:document.getElementById('f-notes').value.trim(),color:COLORS[clients.length%COLORS.length]};
+  clients.push(newClient);
+  if(window.fbSave) fbSave('clients', newClient.id, newClient);
   closeModal('add-client-modal');showToast(`${first} added! 🎉`);renderClients();renderStats();
 }
 
@@ -1567,7 +1707,9 @@ function saveJob(){
   const dates=generateRecurringDates(date,recMode,endDate);
   const seriesId=`series-${Date.now()}`;
   dates.forEach((d,i)=>{
-    jobs.push({id:Date.now()+i,clientId:cid,date:d,time,assign,status:'todo',cl:CHECKLIST.map(t=>({t,d:false})),paid:false,recurrence:recMode,customDays,seriesId,notifSent:{confirm:i===0,reminder:false,complete:false},clockIn:null,clockOut:null});
+    const newJob={id:Date.now()+i,clientId:cid,date:d,time,assign,status:'todo',cl:CHECKLIST.map(t=>({t,d:false})),paid:false,recurrence:recMode,customDays,seriesId,notifSent:{confirm:i===0,reminder:false,complete:false},clockIn:null,clockOut:null};
+    jobs.push(newJob);
+    if(window.fbSave) fbSave('jobs', newJob.id, newJob);
   });
   closeModal('add-job-modal');selDate=new Date(date+'T12:00:00');
   if(recMode!=='none')showToast(`🔁 ${dates.length} recurring jobs created! 📅`);
@@ -2032,6 +2174,7 @@ function deleteContact(id){
   const c=contacts.find(x=>x.id===id);
   if(!confirm(`Delete ${c.first} ${c.last}? This cannot be undone.`))return;
   contacts=contacts.filter(x=>x.id!==id);
+  if(window.fbDelete) fbDelete('contacts', id);
   closeModal('contact-modal');renderCRM();
   showToast(`${c.first} deleted! 🗑️`);
 }
@@ -2054,7 +2197,9 @@ function openAddContact(){
 function saveContact(){
   const first=document.getElementById('cc-first').value.trim(),last=document.getElementById('cc-last').value.trim();
   if(!first){showToast('Name is required!');return;}
-  contacts.push({id:Date.now(),first,last,phone:document.getElementById('cc-phone').value.trim(),addr:document.getElementById('cc-addr').value.trim(),status:document.getElementById('cc-status').value,notes:document.getElementById('cc-notes').value.trim(),added:fmt(new Date())});
+  const newContact={id:Date.now(),first,last,phone:document.getElementById('cc-phone').value.trim(),addr:document.getElementById('cc-addr').value.trim(),status:document.getElementById('cc-status').value,notes:document.getElementById('cc-notes').value.trim(),added:fmt(new Date())};
+  contacts.push(newContact);
+  if(window.fbSave) fbSave('contacts', newContact.id, newContact);
   closeModal('add-contact-modal');renderCRM();showToast(`${first} added! 🎉`);
 }
 
