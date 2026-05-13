@@ -66,7 +66,7 @@
           if (!snap.empty) {
             clients = snap.docs.map(d => d.data());
             if (typeof renderClients === 'function') renderClients();
-            if (typeof renderSchedule === 'function') renderSchedule();
+            if (typeof renderSched === 'function') renderSched(); if (typeof renderStats === 'function') renderStats();
           }
         });
 
@@ -80,7 +80,7 @@
         onSnapshot(collection(db, 'jobs'), (snap) => {
           if (!snap.empty) {
             jobs = snap.docs.map(d => d.data());
-            if (typeof renderSchedule === 'function') renderSchedule();
+            if (typeof renderSched === 'function') renderSched(); if (typeof renderStats === 'function') renderStats();
           }
         });
 
@@ -2334,6 +2334,7 @@ function saveEditJob(){
   j.date=document.getElementById('ej-date').value;
   j.time=document.getElementById('ej-time').value;
   j.assign=ejSelectedTeam.join(' & ');
+  if(window.fbSave) fbSave('jobs', j.id, j);
   closeModal('edit-job-modal');
   showToast('Job updated! ✓');
   renderSched(); renderStats();
@@ -2348,8 +2349,8 @@ function openDeleteSeries(id){
     document.getElementById('series-modal-sub').textContent='This job is part of a recurring series.';
     document.getElementById('series-btn-this').textContent='🗑️ Delete only this';
     document.getElementById('series-btn-future').textContent='🗑️ Delete this + all future';
-    document.getElementById('series-btn-this').onclick=()=>{ jobs=jobs.filter(x=>x.id!==id); closeModal('series-modal'); closeModal('job-modal'); closeModal('edit-job-modal'); showToast('Job deleted'); renderSched(); renderStats(); };
-    document.getElementById('series-btn-future').onclick=()=>{ jobs=jobs.filter(x=>!(x.seriesId===j.seriesId&&x.date>=j.date)); closeModal('series-modal'); closeModal('job-modal'); closeModal('edit-job-modal'); showToast('Recurring jobs deleted'); renderSched(); renderStats(); };
+    document.getElementById('series-btn-this').onclick=()=>{ if(window.fbDelete) fbDelete('jobs', id); jobs=jobs.filter(x=>x.id!==id); closeModal('series-modal'); closeModal('job-modal'); closeModal('edit-job-modal'); showToast('Job deleted'); renderSched(); renderStats(); };
+    document.getElementById('series-btn-future').onclick=()=>{ const toDelete=jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date); toDelete.forEach(x=>{if(window.fbDelete) fbDelete('jobs', x.id);}); jobs=jobs.filter(x=>!(x.seriesId===j.seriesId&&x.date>=j.date)); closeModal('series-modal'); closeModal('job-modal'); closeModal('edit-job-modal'); showToast('Recurring jobs deleted'); renderSched(); renderStats(); };
     openModal('series-modal');
   } else {
     jobs=jobs.filter(x=>x.id!==id);
@@ -2377,6 +2378,7 @@ function deleteJob(){
   const id=parseInt(document.getElementById('ej-id').value);
   openDeleteSeries(id);
 }
+// saveEditJob consolidated above
 
 // ============ FINANCE ============
 let financeMonth=new Date();
