@@ -35,7 +35,10 @@
     try {
       const { db, doc, setDoc, collection } = window._fb;
       await setDoc(doc(collection(db, colName), String(id)), data);
-    } catch(e) { console.error('fbSave error:', e); }
+    } catch(e) { 
+      console.error('fbSave error:', e);
+      if(typeof showToast==='function') showToast('⚠️ Save error: ' + e.message);
+    }
   };
 
   window.fbDelete = async function(colName, id) {
