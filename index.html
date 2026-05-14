@@ -35,6 +35,7 @@
     try {
       const { db, doc, setDoc, collection } = window._fb;
       await setDoc(doc(collection(db, colName), String(id)), data);
+      if(colName==='jobs' && typeof showToast==='function') showToast('✅ Job saved to Firebase!');
     } catch(e) { 
       console.error('fbSave error:', e);
       if(typeof showToast==='function') showToast('⚠️ Save error: ' + e.message);
@@ -86,7 +87,11 @@
         onSnapshot(collection(db, 'jobs'), (snap) => {
           if (!snap.empty) {
             jobs = snap.docs.map(d => d.data());
-            if (typeof renderSched === 'function') renderSched(); if (typeof renderStats === 'function') renderStats();
+            if (typeof renderSched === 'function') renderSched(); 
+            if (typeof renderStats === 'function') renderStats();
+            if (typeof showToast === 'function') showToast(`📦 ${jobs.length} jobs loaded from Firebase`);
+          } else {
+            if (typeof showToast === 'function') showToast('📭 No jobs in Firebase yet');
           }
         });
 
@@ -1508,7 +1513,7 @@ function openJob(id){
   document.getElementById('modal-name').textContent=`${c.first} ${c.last}`;
   const recTxt=j.recurrence&&j.recurrence!=='none'?` · 🔁 ${j.recurrence==='weekly'?'Weekly':j.recurrence==='biweekly'?'Bi-weekly':'Monthly'}`:'';
   document.getElementById('modal-time').textContent=`${fmtT(j.time)} · ${j.assign}${recTxt}`;
-  document.getElementById('modal-addr').textContent=c.address;
+  document.getElementById('modal-addr').innerHTML=`<a href="https://maps.google.com/?q=${encodeURIComponent(c.address)}" target="_blank" style="color:var(--blue-dark);text-decoration:none;font-weight:700">${c.address} 🗺️</a>`;
   const gr=document.getElementById('gate-row'),dr=document.getElementById('door-row');
   c.gate?(gr.classList.remove('hidden'),document.getElementById('modal-gate').textContent=c.gate):gr.classList.add('hidden');
   c.door?(dr.classList.remove('hidden'),document.getElementById('modal-door').textContent=c.door):dr.classList.add('hidden');
@@ -1658,7 +1663,7 @@ function openClient(id){
   const allJobs=jobs.filter(j=>j.clientId===c.id&&j.status==='done');
   const last=getLastVisit(c.id);
   document.getElementById('cm-body').innerHTML=
-    `<div class="info-row"><div class="info-icon">📍</div><div style="flex:1"><div class="info-label">Address</div><div class="info-value">${c.address}</div></div></div>`+
+    `<div class="info-row"><div class="info-icon">📍</div><div style="flex:1"><div class="info-label">Address</div><div class="info-value"><a href="https://maps.google.com/?q=${encodeURIComponent(c.address)}" target="_blank" style="color:var(--blue-dark);text-decoration:none">${c.address} 🗺️</a></div></div></div>`+
     `${c.gate?`<div class="info-row"><div class="info-icon">🚪</div><div style="flex:1"><div class="info-label">Gate</div><div class="info-value">${c.gate}</div></div></div>`:''}`+
     `${c.door?`<div class="info-row"><div class="info-icon">🔑</div><div style="flex:1"><div class="info-label">Door</div><div class="info-value">${c.door}</div></div></div>`:''}`+
     `<div class="info-row"><div class="info-icon">📱</div><div style="flex:1"><div class="info-label">Phone</div><div class="info-value"><a href="tel:${c.phone}" style="color:var(--blue-dark)">${c.phone}</a></div></div></div>`+
