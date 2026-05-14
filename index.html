@@ -1281,7 +1281,12 @@ function doRegister(){
 function finishLogin(user){
   document.getElementById('pin-screen').classList.add('hidden');
   doLogin(user.role, user.name);
-  // Run 24h reminders on owner login
+  // Confirm Firebase connection
+  setTimeout(()=>{
+    if(!window.fbSave){
+      showToast('⚠️ Firebase not connected! Data will not save.');
+    }
+  }, 2000);
   if(user.role==='owner'){
     setTimeout(()=>checkAndSend24hReminders(), 3000);
   }
@@ -1792,7 +1797,11 @@ function saveJob(){
   dates.forEach((d,i)=>{
     const newJob={id:Date.now()+i,clientId:cid,date:d,time,assign,status:'todo',cl:CHECKLIST.map(t=>({t,d:false})),paid:false,recurrence:recMode,customDays,seriesId,notifSent:{confirm:i===0,reminder:false,complete:false},clockIn:null,clockOut:null};
     jobs.push(newJob);
-    if(window.fbSave) fbSave('jobs', newJob.id, newJob);
+    if(window.fbSave){
+      fbSave('jobs', newJob.id, newJob);
+    } else {
+      showToast('⚠️ Firebase not connected! Job not saved.');
+    }
   });
   closeModal('add-job-modal');selDate=new Date(date+'T12:00:00');
   if(recMode!=='none')showToast(`🔁 ${dates.length} recurring jobs created! 📅`);
