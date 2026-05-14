@@ -528,7 +528,10 @@ textarea.form-input{resize:none;min-height:80px}
 
   <!-- SCHEDULE TAB -->
   <div id="tab-schedule" class="content">
-    <div style="margin-bottom:10px"><div class="section-title">Schedule</div><div class="section-sub" id="schedule-sub">Today</div></div>
+    <div style="margin-bottom:10px">
+      <div class="section-title">Schedule</div>
+      <div class="section-sub" id="schedule-sub">Today</div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:0">
       <div class="view-toggle" style="flex:1">
         <button class="vt-btn active" id="vt-day" onclick="setView('day')">📋 Day</button>
@@ -543,7 +546,14 @@ textarea.form-input{resize:none;min-height:80px}
       <button onclick="clearSchedSearch()" style="background:none;border:none;color:var(--soft);font-size:18px;cursor:pointer;padding:0;line-height:1">✕</button>
     </div>
     <div id="sched-search-results" class="hidden" style="margin-top:8px"></div>
-    <div id="view-day"><div class="date-strip" id="date-strip"></div><div id="jobs-list"></div></div>
+    <div id="view-day">
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="wnav-btn" onclick="changeStripWeek(-1)" style="flex-shrink:0">‹</button>
+        <div class="date-strip" id="date-strip" style="flex:1"></div>
+        <button class="wnav-btn" onclick="changeStripWeek(1)" style="flex-shrink:0">›</button>
+      </div>
+      <div id="jobs-list"></div>
+    </div>
     <div id="view-week" class="hidden">
       <div class="week-nav"><button class="wnav-btn" onclick="changeWeek(-1)">‹</button><span class="week-title" id="week-title"></span><button class="wnav-btn" onclick="changeWeek(1)">›</button></div>
       <div class="week-grid" id="week-grid"></div>
@@ -800,7 +810,10 @@ Landscaping</textarea>
       </div>
 
       <button class="btn-primary" id="complete-btn" onclick="completeJob()">✅ Job Complete</button>
-      <button class="btn-pay hidden" id="pay-btn" onclick="sendPayReminder()">💬 Send Payment Reminder</button>
+      <div id="pay-actions" class="hidden">
+        <button class="btn-primary" style="background:var(--success)" id="paid-btn" onclick="markAsPaid()">💰 Mark as Paid</button>
+        <button class="btn-secondary" id="reminder-btn" onclick="sendPayReminder()">💬 Send Payment Reminder</button>
+      </div>
       <div id="job-mgmt-btns"></div>
     </div>
   </div>
@@ -1380,6 +1393,8 @@ function setView(v){
   ['day','week','month'].forEach(x=>{document.getElementById('view-'+x).classList.add('hidden');document.getElementById('vt-'+x).classList.remove('active');});
   document.getElementById('view-'+v).classList.remove('hidden');
   document.getElementById('vt-'+v).classList.add('active');
+  const arrows=document.getElementById('day-nav-arrows');
+  if(arrows) arrows.style.display=v==='day'?'flex':'none';
   renderSched();
 }
 function renderSched(){
@@ -1393,15 +1408,27 @@ function renderSched(){
 }
 
 // ============ DAY VIEW ============
+let dayStripWeek=null; // tracks which week the strip shows
+
 function renderDay(){
+  if(!dayStripWeek) dayStripWeek=weekOf(selDate);
   let h='';
-  // Build 7-day strip starting from Monday of current week
-const today=new Date(),todayMon=weekOf(today);
-for(let i=0;i<7;i++){const d=addD(todayMon,i),ds=fmt(d);const has=jobs.some(j=>j.date===ds),isSel=ds===fmt(selDate);h+=`<div class="date-chip ${isSel?'active':''} ${has?'has-jobs':''}" onclick="pickDate('${ds}')"><span class="dn">${DAYS[d.getDay()]}</span><span class="dd">${d.getDate()}</span></div>`;}
+  for(let i=0;i<7;i++){
+    const d=addD(dayStripWeek,i),ds=fmt(d);
+    const has=jobs.some(j=>j.date===ds),isSel=ds===fmt(selDate);
+    h+=`<div class="date-chip ${isSel?'active':''} ${has?'has-jobs':''}" onclick="pickDate('${ds}')"><span class="dn">${DAYS[d.getDay()]}</span><span class="dd">${d.getDate()}</span></div>`;
+  }
   document.getElementById('date-strip').innerHTML=h;
   renderJobs();
 }
-function pickDate(ds){selDate=new Date(ds+'T12:00:00');renderDay();document.getElementById('schedule-sub').textContent=ds===fmt(new Date())?'Today':selDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
+function changeStripWeek(dir){
+  if(!dayStripWeek) dayStripWeek=weekOf(selDate);
+  dayStripWeek=addD(dayStripWeek,dir*7);
+  renderDay();
+}
+function pickDate(ds){selDate=new Date(ds+'T12:00:00');dayStripWeek=weekOf(selDate);renderDay();document.getElementById('schedule-sub').textContent=ds===fmt(new Date())?'Today':selDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
+function changeDay(dir){selDate=addD(selDate,dir);dayStripWeek=weekOf(selDate);const ds=fmt(selDate);document.getElementById('schedule-sub').textContent=ds===fmt(new Date())?'Today':selDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});renderDay();}
+function goToday(){selDate=new Date();dayStripWeek=weekOf(selDate);document.getElementById('schedule-sub').textContent='Today';renderDay();}
 
 function renderJobs(){
   const ds=fmt(selDate),dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
@@ -1507,9 +1534,21 @@ function openJob(id){
   }
 
   document.getElementById('modal-checklist').innerHTML=j.cl.map((item,i)=>`<div class="check-item" onclick="toggleCheck(${i})"><div class="check-box ${item.d?'checked':''}" id="cb-${i}">${item.d?'✓':''}</div><div class="check-label ${item.d?'checked':''}" id="cl-${i}">${item.t}</div></div>`).join('');
-  const btn=document.getElementById('complete-btn'),payBtn=document.getElementById('pay-btn');
-  if(j.status==='done'){btn.textContent='✅ Completed!';btn.className='btn-primary done-btn';btn.disabled=true;payBtn.classList.toggle('hidden',j.paid);}
-  else{btn.textContent='✅ Job Complete';btn.className='btn-primary';btn.disabled=false;payBtn.classList.add('hidden');}
+  const btn=document.getElementById('complete-btn');
+  const payActions=document.getElementById('pay-actions');
+  const paidBtn=document.getElementById('paid-btn');
+  if(j.status==='done'){
+    btn.textContent='✅ Completed!';btn.className='btn-primary done-btn';btn.disabled=true;
+    if(j.paid){
+      payActions.classList.add('hidden');
+    } else {
+      payActions.classList.remove('hidden');
+      paidBtn.textContent='💰 Mark as Paid';paidBtn.disabled=false;
+    }
+  } else {
+    btn.textContent='✅ Job Complete';btn.className='btn-primary';btn.disabled=false;
+    payActions.classList.add('hidden');
+  }
 
   // PHOTOS
   renderPhotos(j);
@@ -1552,19 +1591,26 @@ async function completeJob(){
   if(window.fbSave) fbSave('jobs', j.id, j);
   const btn=document.getElementById('complete-btn');
   btn.textContent='✅ Completed!';btn.className='btn-primary done-btn';btn.disabled=true;
-  document.getElementById('pay-btn').classList.remove('hidden');
+  document.getElementById('pay-actions').classList.remove('hidden');
   const msg=`Hi ${c.first}! ✅ Your cleaning is all done! We hope everything looks amazing 🧹✨ If you love our work, we'd really appreciate a Google review — it means the world to us! Thank you for choosing AV Cleaning LV 💙`;
   await sendRealSMS(c.phone, msg, 'complete');
-  notifications.unshift({type:'complete',msg:`Job complete → ${c.first} ${c.last}`,sub:`Payment of $${c.price} requested`,time:'Just now',sent:true});
+  notifications.unshift({type:'complete',msg:`Job complete → ${c.first} ${c.last}`,sub:`$${c.price} pending payment`,time:'Just now',sent:true});
   showToast(`✅ ${c.first}'s job complete! Client notified 📲`);
   renderSched();renderStats();
 }
+function markAsPaid(){
+  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);
+  j.paid=true;
+  if(window.fbSave) fbSave('jobs', j.id, j);
+  document.getElementById('pay-actions').classList.add('hidden');
+  showToast(`💰 ${c.first} marked as paid!`);
+  renderStats();
+}
 async function sendPayReminder(){
   const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);
-  const msg=`Hi ${c.first}! 💙 Thank you so much for having us! Your balance of $${c.price} for today's cleaning is due. Please use Zelle/Venmo or let us know if you have any questions. We appreciate you! 🧹 — AV Cleaning LV`;
+  const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} for your recent cleaning is due. You can pay via Zelle/Venmo. Thank you so much! 🧹 — AV Cleaning LV`;
   await sendRealSMS(c.phone, msg, 'payment');
-  j.paid=true;document.getElementById('pay-btn').classList.add('hidden');
-  showToast(`💸 Payment reminder sent to ${c.first}!`);renderStats();
+  showToast(`💬 Reminder sent to ${c.first}!`);
 }
 function copyVal(f){const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);const m={address:c.address,gate:c.gate,door:c.door};navigator.clipboard?.writeText(m[f]).catch(()=>{});showToast('Copied! 📋');}
 
@@ -1617,7 +1663,7 @@ function openClient(id){
     `<button class="btn-danger" onclick="deleteClient(${c.id})">🗑️ Delete Client</button>`;
   openModal('client-modal');
 }
-async function payReminder(id){const c=clients.find(x=>x.id===id);const msg=`Hi ${c.first}! 💙 Just a friendly reminder about your pending balance of $${c.price} with AV Cleaning LV. Thank you so much — we appreciate your business! 🧹✨`;await sendRealSMS(c.phone,msg,'payment');showToast(`Payment reminder sent to ${c.first}! 💸`);}
+async function payReminder(id){const c=clients.find(x=>x.id===id);const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} with AV Cleaning LV is due. Thank you so much — we appreciate your business! 🧹✨`;await sendRealSMS(c.phone,msg,'payment');showToast(`Reminder sent to ${c.first}! 💬`);}
 function schedFor(id){closeModal('client-modal');openAddJob(id);}
 
 function openEditClient(id){
@@ -2506,13 +2552,13 @@ function renderFinance(){
   const paidJobs=doneJobs.filter(j=>j.paid);
   const pendingJobs=doneJobs.filter(j=>!j.paid);
 
-  const revenue=doneJobs.reduce((s,j)=>s+(clients.find(c=>c.id===j.clientId)?.price||0),0);
-  const paid=paidJobs.reduce((s,j)=>s+(clients.find(c=>c.id===j.clientId)?.price||0),0);
+  const revenue=paidJobs.reduce((s,j)=>s+(clients.find(c=>c.id===j.clientId)?.price||0),0);
+  const paid=revenue;
   const pending=pendingJobs.reduce((s,j)=>s+(clients.find(c=>c.id===j.clientId)?.price||0),0);
-  const avg=doneJobs.length?Math.round(revenue/doneJobs.length):0;
+  const avg=paidJobs.length?Math.round(revenue/paidJobs.length):0;
 
   document.getElementById('finance-revenue').textContent=`$${revenue.toLocaleString()}`;
-  document.getElementById('fn-jobs').textContent=doneJobs.length;
+  document.getElementById('fn-jobs').textContent=paidJobs.length;
   document.getElementById('fn-avg').textContent=`$${avg}`;
   document.getElementById('fn-paid').textContent=`$${paid.toLocaleString()}`;
   document.getElementById('fn-pending').textContent=`$${pending.toLocaleString()}`;
