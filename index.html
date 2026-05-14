@@ -1202,7 +1202,7 @@ function doSignIn(){
         const name = email.split('@')[0];
         if(pinRole==='owner'&&r!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
         if(pinRole==='team'&&r==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
-        if(save){localStorage.setItem('av_saved_user',JSON.stringify({email,role:r,name}));tryRegisterBiometric({email,role:r,name});}
+        if(save){localStorage.setItem('av_saved_user',JSON.stringify({email,role:r,name}));}
         else{localStorage.removeItem('av_saved_user');}
         finishLogin({role:r,name});
       })
@@ -1212,7 +1212,7 @@ function doSignIn(){
         if(!user){errEl.textContent='Email ou senha incorretos. Tente novamente.';return;}
         if(pinRole==='owner'&&user.role!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
         if(pinRole==='team'&&user.role==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
-        if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));tryRegisterBiometric(user);}
+        if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));}
         else{localStorage.removeItem('av_saved_user');}
         finishLogin(user);
       });
@@ -1225,7 +1225,7 @@ function doSignIn(){
   if(pinRole==='owner'&&user.role!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
   if(pinRole==='team'&&user.role==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
   try{
-    if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));tryRegisterBiometric(user);}
+    if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));}
     else{localStorage.removeItem('av_saved_user');}
   }catch(e){}
   finishLogin(user);
