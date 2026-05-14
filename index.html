@@ -1302,6 +1302,8 @@ function checkFaceIDAvailable(){
 
 async function tryRegisterBiometric(user){
   if(!window.PublicKeyCredential)return;
+  // If already registered, don't ask again
+  if(localStorage.getItem('av_webauthn_id'))return;
   try{
     const chal=new Uint8Array(32);
     crypto.getRandomValues(chal);
