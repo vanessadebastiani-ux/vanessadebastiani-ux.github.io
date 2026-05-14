@@ -205,7 +205,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--dark);min-
 .job-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
 .tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:800}
 .tw{background:#fff4e0;color:#c97d00}.td{background:#ffe8e8;color:var(--danger)}.tok{background:#e8f9f1;color:var(--success)}
-.jbadge{position:absolute;top:11px;right:11px;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:800}
+.jbadge{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:800;white-space:nowrap;flex-shrink:0}
 .bdone{background:#e8f9f1;color:var(--success)}.btodo{background:var(--blue-pale);color:var(--blue-dark)}
 .rec-badge{font-size:10px;color:var(--blue-dark);margin-top:4px;font-weight:700}
 
@@ -423,11 +423,11 @@ textarea.form-input{resize:none;min-height:80px}
 
       <!-- SIGN IN -->
       <div id="pin-signin-view">
-        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="si-email" type="email" placeholder="you@email.com" autocomplete="email"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="si-email" type="email" placeholder="you@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doSignIn()"></div>
         <div class="form-group" style="position:relative">
           <label class="form-label">Password</label>
           <div style="display:flex;align-items:center">
-            <input class="form-input" id="si-pw" type="password" placeholder="Your password" autocomplete="current-password" style="flex:1;padding-right:40px">
+            <input class="form-input" id="si-pw" type="password" placeholder="Your password" autocomplete="current-password" style="flex:1;padding-right:40px" onkeydown="if(event.key==='Enter')doSignIn()">
             <button class="toggle-pw" onclick="togglePw('si-pw',this)" style="position:absolute;right:10px">👁</button>
           </div>
         </div>
@@ -861,9 +861,9 @@ Landscaping</textarea>
           <input class="form-input" type="number" id="j-custom-days" placeholder="21" min="1" max="365" style="width:80px;text-align:center">
           <span style="font-size:13px;font-weight:700;color:var(--mid)">days</span>
         </div>
-        <div id="rec-end-wrap" class="hidden">
+        <div id="rec-end-wrap" class="hidden" style="display:none!important">
           <label class="form-label">Repeat until</label>
-          <input class="form-input" type="date" id="j-rec-end">
+          <input class="form-input" type="date" id="j-rec-end" value="2030-12-31">
         </div>
       </div>
       <!-- TEAM -->
@@ -1085,7 +1085,7 @@ let jobs=[];
 let notifications=[];
 
 // ============ HELPERS ============
-const fmt=d=>d.toISOString().split('T')[0];
+const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const addD=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
 const fmtT=t=>{if(!t)return'';if(t.includes('AM')||t.includes('PM'))return t;const[h,m]=t.split(':').map(Number);if(isNaN(h)||isNaN(m))return t;return`${h%12||12}:${m.toString().padStart(2,'0')} ${h>=12?'PM':'AM'}`;};
 const fmtTime12=()=>{const n=new Date();let h=n.getHours(),m=n.getMinutes();const ap=h>=12?'PM':'AM';return`${h%12||12}:${m.toString().padStart(2,'0')} ${ap}`;};
@@ -1412,8 +1412,7 @@ function renderJobs(){
     const tags=getTags(c);
     const recLabel=j.recurrence&&j.recurrence!=='none'?`<div class="rec-badge">🔁 ${j.recurrence==='weekly'?'Weekly':j.recurrence==='biweekly'?'Bi-weekly':j.recurrence==='triweekly'?'Every 3 wks':j.recurrence==='custom'?`Every ${j.customDays||'?'} days`:'Monthly'}</div>`:'';
     return`<div class="job-card ${j.status}" onclick="openJob(${j.id})">
-      <span class="jbadge ${j.status==='done'?'bdone':'btodo'}">${j.status==='done'?'✓ Done':'Scheduled'}</span>
-      <div class="job-header"><div class="job-name">${c?.first} ${c?.last}</div><div class="job-time">${fmtT(j.time)}</div></div>
+      <div class="job-header"><div class="job-name">${c?.first} ${c?.last}</div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><div class="job-time">${fmtT(j.time)}</div><span class="jbadge ${j.status==='done'?'bdone':'btodo'}">${j.status==='done'?'✓ Done':'Scheduled'}</span></div></div>
       <div class="job-addr">📍 ${c?.address}</div>
       ${tags.length?`<div class="job-tags">${tags.map(t=>`<span class="tag ${t.c}">${t.l}</span>`).join('')}</div>`:''}
       <div style="font-size:11px;color:var(--soft);margin-top:6px;font-weight:700">👤 ${j.assign}</div>
@@ -1681,14 +1680,12 @@ function selRec(r){
   recMode=r;
   document.querySelectorAll('.rec-chip').forEach(el=>el.classList.remove('selected'));
   event.target.classList.add('selected');
-  const endWrap=document.getElementById('rec-end-wrap');
   const customWrap=document.getElementById('rec-custom-wrap');
-  if(r==='none'){endWrap.classList.add('hidden');customWrap.classList.add('hidden');}
+  // Always set end date to 2030, never show the field
+  document.getElementById('j-rec-end').value='2030-12-31';
+  if(r==='none'){customWrap.classList.add('hidden');}
   else{
-    endWrap.classList.remove('hidden');
     r==='custom'?customWrap.classList.remove('hidden'):customWrap.classList.add('hidden');
-    const d=addD(new Date(),r==='weekly'?90:r==='biweekly'?180:r==='triweekly'?180:365);
-    document.getElementById('j-rec-end').value=fmt(d);
     if(r==='triweekly') document.getElementById('j-custom-days').value='21';
     if(r==='custom') document.getElementById('j-custom-days').value='';
   }
@@ -1704,7 +1701,9 @@ function toggleTeam(m){selectedTeam=selectedTeam.includes(m)?selectedTeam.filter
 function addTeamMember(){const inp=document.getElementById('new-member');const name=inp.value.trim();if(!name)return;if(!teamMembersLocal.includes(name))teamMembersLocal.push(name);if(!selectedTeam.includes(name))selectedTeam.push(name);inp.value='';renderTeamChips();}
 
 function openAddJob(pre){
-  const sel=document.getElementById('j-client');sel.innerHTML=clients.map(c=>`<option value="${c.id}">${c.first} ${c.last}</option>`).join('');
+  const sel=document.getElementById('j-client');
+  const sorted=[...clients].sort((a,b)=>`${a.first} ${a.last}`.localeCompare(`${b.first} ${b.last}`));
+  sel.innerHTML=sorted.map(c=>`<option value="${c.id}">${c.first} ${c.last}</option>`).join('');
   if(pre)sel.value=pre;
   document.getElementById('j-date').value=fmt(selDate);
   selectedTeam=[];recMode='none';
