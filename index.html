@@ -89,10 +89,7 @@
             jobs = snap.docs.map(d => d.data());
             if (typeof renderSched === 'function') renderSched(); 
             if (typeof renderStats === 'function') renderStats();
-            if (typeof showToast === 'function') showToast(`📦 ${jobs.length} jobs loaded from Firebase`);
-          } else {
-            if (typeof showToast === 'function') showToast('📭 No jobs in Firebase yet');
-          }
+            }
         });
 
       } catch(e) { console.error('Load error:', e); }
@@ -1450,7 +1447,7 @@ function renderJobs(){
   const el=document.getElementById('jobs-list');
   if(!dj.length){el.innerHTML=`<div style="text-align:center;padding:36px 20px;color:var(--soft)"><div style="font-size:38px;margin-bottom:10px">🌴</div><div style="font-size:14px;font-weight:800">No jobs today!</div></div>`+(role==='owner'?`<button class="btn-primary" style="margin-top:0" onclick="openAddJob()">+ Add Job</button>`:'');return;}
   el.innerHTML=dj.map(j=>{
-    const c=clients.find(x=>x.id===j.clientId);
+    const c=clients.find(x=>String(x.id)===String(j.clientId));
     const tags=getTags(c);
     const recLabel=j.recurrence&&j.recurrence!=='none'?`<div class="rec-badge">🔁 ${j.recurrence==='weekly'?'Weekly':j.recurrence==='biweekly'?'Bi-weekly':j.recurrence==='triweekly'?'Every 3 wks':j.recurrence==='custom'?`Every ${j.customDays||'?'} days`:'Monthly'}</div>`:'';
     return`<div class="job-card ${j.status}" onclick="openJob(${j.id})">
@@ -1474,7 +1471,7 @@ function renderWeek(){
   for(let i=0;i<7;i++){
     const d=addD(weekStart,i),ds=fmt(d);
     const dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
-    const pills=dj.map(j=>{const c=clients.find(x=>x.id===j.clientId);const rec=j.recurrence&&j.recurrence!=='none';return`<div class="wpill ${j.status==='done'?'done-p':''}" draggable="${role==='owner'}" ondragstart="onDragStart(event,${j.id})" onclick="openJob(${j.id})"><div><div class="wn">${c?.first} ${c?.last}</div><div class="wt">${fmtT(j.time)}${rec?' 🔁':''}</div></div>${role==='owner'?'<span class="wdrag">⠿</span>':''}</div>`;}).join('');
+    const pills=dj.map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));const rec=j.recurrence&&j.recurrence!=='none';return`<div class="wpill ${j.status==='done'?'done-p':''}" draggable="${role==='owner'}" ondragstart="onDragStart(event,${j.id})" onclick="openJob(${j.id})"><div><div class="wn">${c?.first} ${c?.last}</div><div class="wt">${fmtT(j.time)}${rec?' 🔁':''}</div></div>${role==='owner'?'<span class="wdrag">⠿</span>':''}</div>`;}).join('');
     h+=`<div class="week-row"><div class="wday-label"><div class="wday-name">${DAYS[d.getDay()]}</div><div class="wday-num ${ds===td?'today-n':''}">${d.getDate()}</div></div><div class="week-cells ${!dj.length?'empty':''}" id="wc-${ds}">${pills||`<div style="font-size:11px;color:#cce0f0;padding:4px;font-weight:700">–</div>`}</div></div>`;
   }
   document.getElementById('week-grid').innerHTML=h;
@@ -1492,24 +1489,24 @@ function renderMonth(){
   for(let i=0;i<firstDow;i++)cells.push({d:addD(first,-(firstDow-i)),o:true});
   for(let n=1;n<=last.getDate();n++)cells.push({d:new Date(y,m,n),o:false});
   while(cells.length%7!==0)cells.push({d:addD(cells[cells.length-1].d,1),o:true});
-  document.getElementById('month-grid').innerHTML=cells.map(({d,o})=>{const ds=fmt(d),dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const MAX=2;const shown=dj.slice(0,MAX).map(j=>{const c=clients.find(x=>x.id===j.clientId);return`<div style="display:flex;align-items:center;gap:2px;margin-bottom:1px"><div style="width:5px;height:5px;border-radius:50%;background:${j.status==='done'?'var(--success)':'var(--blue)'};flex-shrink:0"></div><span style="font-size:9px;font-weight:700;color:var(--blue-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px">${c?.first||''}</span></div>`;}).join('');const more=dj.length>MAX?`<div class="mmore">+${dj.length-MAX}</div>`:'';return`<div class="month-cell ${o?'other-m':''} ${ds===td?'today-c':''}" onclick="${!o?`openMDay('${ds}')`:'void 0'}" id="mc-${ds}"><div class="mcnum">${d.getDate()}</div>${shown}${more}</div>`;}).join('');
+  document.getElementById('month-grid').innerHTML=cells.map(({d,o})=>{const ds=fmt(d),dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const MAX=2;const shown=dj.slice(0,MAX).map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));return`<div style="display:flex;align-items:center;gap:2px;margin-bottom:1px"><div style="width:5px;height:5px;border-radius:50%;background:${j.status==='done'?'var(--success)':'var(--blue)'};flex-shrink:0"></div><span style="font-size:9px;font-weight:700;color:var(--blue-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px">${c?.first||''}</span></div>`;}).join('');const more=dj.length>MAX?`<div class="mmore">+${dj.length-MAX}</div>`:'';return`<div class="month-cell ${o?'other-m':''} ${ds===td?'today-c':''}" onclick="${!o?`openMDay('${ds}')`:'void 0'}" id="mc-${ds}"><div class="mcnum">${d.getDate()}</div>${shown}${more}</div>`;}).join('');
   document.querySelectorAll('.month-cell:not(.other-m)').forEach(el=>{el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag-over');});el.addEventListener('dragleave',()=>el.classList.remove('drag-over'));el.addEventListener('drop',e=>{e.preventDefault();const ds=el.id.replace('mc-','');onDrop(ds);el.classList.remove('drag-over');});});
 }
 function openMDay(ds){
   const dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const d=new Date(ds+'T12:00:00');
   document.getElementById('mday-title').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   document.getElementById('mday-sub').textContent=`${dj.length} job${dj.length!==1?'s':''}`;
-  document.getElementById('mday-body').innerHTML=!dj.length?`<div style="text-align:center;padding:24px;color:var(--soft)"><div style="font-size:30px">🌴</div><div style="font-weight:800;margin-top:8px">Free day!</div></div>`+(role==='owner'?`<button class="btn-primary" onclick="closeModal('mday-modal');openAddJob()">+ Add Job</button>`:''):dj.map(j=>{const c=clients.find(x=>x.id===j.clientId);return`<div class="job-card ${j.status}" style="margin-bottom:8px" onclick="closeModal('mday-modal');openJob(${j.id})"><div class="job-header"><div class="job-name">${c?.first} ${c?.last}</div><div class="job-time">${fmtT(j.time)}</div></div><div class="job-addr">👤 ${j.assign}${j.recurrence&&j.recurrence!=='none'?' 🔁':''}</div></div>`;}).join('')+(role==='owner'?`<button class="btn-primary" style="background:none;color:var(--blue-dark);border:2px dashed var(--blue)" onclick="closeModal('mday-modal');openAddJob()">+ Add Job</button>`:'');
+  document.getElementById('mday-body').innerHTML=!dj.length?`<div style="text-align:center;padding:24px;color:var(--soft)"><div style="font-size:30px">🌴</div><div style="font-weight:800;margin-top:8px">Free day!</div></div>`+(role==='owner'?`<button class="btn-primary" onclick="closeModal('mday-modal');openAddJob()">+ Add Job</button>`:''):dj.map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));return`<div class="job-card ${j.status}" style="margin-bottom:8px" onclick="closeModal('mday-modal');openJob(${j.id})"><div class="job-header"><div class="job-name">${c?.first} ${c?.last}</div><div class="job-time">${fmtT(j.time)}</div></div><div class="job-addr">👤 ${j.assign}${j.recurrence&&j.recurrence!=='none'?' 🔁':''}</div></div>`;}).join('')+(role==='owner'?`<button class="btn-primary" style="background:none;color:var(--blue-dark);border:2px dashed var(--blue)" onclick="closeModal('mday-modal');openAddJob()">+ Add Job</button>`:'');
   openModal('mday-modal');
 }
 
 // ============ DRAG & DROP ============
 function onDragStart(e,id){dragId=id;e.dataTransfer.effectAllowed='move';}
-function onDrop(ds){if(!dragId)return;const j=jobs.find(x=>x.id===dragId);if(!j||j.date===ds){dragId=null;return;}j.date=ds;const c=clients.find(x=>x.id===j.clientId);const nd=new Date(ds+'T12:00:00');showToast(`${c?.first} moved to ${nd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} 📅`);dragId=null;renderSched();renderStats();}
+function onDrop(ds){if(!dragId)return;const j=jobs.find(x=>x.id===dragId);if(!j||j.date===ds){dragId=null;return;}j.date=ds;const c=clients.find(x=>String(x.id)===String(j.clientId));const nd=new Date(ds+'T12:00:00');showToast(`${c?.first} moved to ${nd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} 📅`);dragId=null;renderSched();renderStats();}
 
 // ============ JOB DETAIL ============
 function openJob(id){
-  curJob=id;const j=jobs.find(x=>x.id===id),c=clients.find(x=>x.id===j.clientId);
+  curJob=id;const j=jobs.find(x=>x.id===id),c=clients.find(x=>String(x.id)===String(j.clientId));
   document.getElementById('modal-name').textContent=`${c.first} ${c.last}`;
   const recTxt=j.recurrence&&j.recurrence!=='none'?` · 🔁 ${j.recurrence==='weekly'?'Weekly':j.recurrence==='biweekly'?'Bi-weekly':'Monthly'}`:'';
   document.getElementById('modal-time').textContent=`${fmtT(j.time)} · ${j.assign}${recTxt}`;
@@ -1601,7 +1598,7 @@ function clockOut(){const j=jobs.find(x=>x.id===curJob);j.clockOut=fmtTime12();r
 function toggleCheck(i){const j=jobs.find(x=>x.id===curJob);j.cl[i].d=!j.cl[i].d;document.getElementById('cb-'+i).className='check-box'+(j.cl[i].d?' checked':'');document.getElementById('cb-'+i).textContent=j.cl[i].d?'✓':'';document.getElementById('cl-'+i).className='check-label'+(j.cl[i].d?' checked':'');}
 
 async function completeJob(){
-  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);
+  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));
   j.status='done';j.notifSent={...j.notifSent,complete:true};
   if(window.fbSave) fbSave('jobs', j.id, j);
   const btn=document.getElementById('complete-btn');
@@ -1614,7 +1611,7 @@ async function completeJob(){
   renderSched();renderStats();
 }
 function markAsPaid(){
-  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);
+  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));
   j.paid=true;
   if(window.fbSave) fbSave('jobs', j.id, j);
   document.getElementById('pay-actions').classList.add('hidden');
@@ -1622,21 +1619,21 @@ function markAsPaid(){
   renderStats();
 }
 async function sendPayReminder(){
-  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);
+  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));
   const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} for your recent cleaning is due. You can pay via Zelle/Venmo. Thank you so much! 🧹 — AV Cleaning LV`;
   await sendRealSMS(c.phone, msg, 'payment');
   showToast(`💬 Reminder sent to ${c.first}!`);
 }
-function copyVal(f){const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);const m={address:c.address,gate:c.gate,door:c.door};navigator.clipboard?.writeText(m[f]).catch(()=>{});showToast('Copied! 📋');}
+function copyVal(f){const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));const m={address:c.address,gate:c.gate,door:c.door};navigator.clipboard?.writeText(m[f]).catch(()=>{});showToast('Copied! 📋');}
 
 // ============ OMW ============
 function selMins(m){selMinsVal=m;document.querySelectorAll('.min-chip').forEach(el=>el.classList.toggle('selected',el.textContent.includes(m)));const btn=document.getElementById('omw-btn');btn.classList.remove('dis');btn.textContent=`🚗 On My Way — ${m} min away`;}
-async function sendOMW(){if(!selMinsVal)return;const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>x.id===j.clientId);const msg=`Hi ${c.first}! 🚗 Your AV Cleaning team is on the way and will arrive in approximately ${selMinsVal} minutes. See you soon! 🧹✨`;const sent=await sendRealSMS(c.phone,msg,'omw');document.getElementById('omw-picker').classList.add('hidden');document.getElementById('omw-sent').classList.remove('hidden');document.getElementById('omw-msg').textContent=`${c.first} notified — arriving in ~${selMinsVal} min`;showToast(sent?`📲 ${c.first} notified! ~${selMinsVal} min away`:`📋 OMW logged (check SMS settings)`);}
+async function sendOMW(){if(!selMinsVal)return;const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));const msg=`Hi ${c.first}! 🚗 Your AV Cleaning team is on the way and will arrive in approximately ${selMinsVal} minutes. See you soon! 🧹✨`;const sent=await sendRealSMS(c.phone,msg,'omw');document.getElementById('omw-picker').classList.add('hidden');document.getElementById('omw-sent').classList.remove('hidden');document.getElementById('omw-msg').textContent=`${c.first} notified — arriving in ~${selMinsVal} min`;showToast(sent?`📲 ${c.first} notified! ~${selMinsVal} min away`:`📋 OMW logged (check SMS settings)`);}
 function resetOMW(){selMinsVal=null;document.getElementById('omw-picker')?.classList.remove('hidden');document.getElementById('omw-sent')?.classList.add('hidden');document.querySelectorAll('.min-chip').forEach(el=>el.classList.remove('selected'));const btn=document.getElementById('omw-btn');if(btn){btn.classList.add('dis');btn.textContent='🚗 On My Way';}}
 
 // ============ CLIENTS ============
 function getLastVisit(clientId){
-  const done=jobs.filter(j=>j.clientId===clientId&&j.status==='done').sort((a,b)=>b.date.localeCompare(a.date));
+  const done=jobs.filter(j=>String(j.clientId)===String(clientId)&&j.status==='done').sort((a,b)=>b.date.localeCompare(a.date));
   return done[0]||null;
 }
 function fmtLastVisit(j){
@@ -1871,7 +1868,7 @@ function renderStats(){
   // PENDING
   document.getElementById('pending-list').innerHTML=!pend.length
     ?`<div style="color:var(--soft);font-size:13px;padding:8px 0;font-weight:700">All payments up to date! 🎉</div>`
-    :pend.map(j=>{const c=clients.find(x=>x.id===j.clientId);return`<div class="info-row"><div class="info-icon">💸</div><div style="flex:1"><div class="info-value">${c.first} ${c.last}</div><div class="info-label">${j.date} · $${c.price}</div></div><button style="background:var(--warn);color:white;border:none;border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:800" onclick="payReminder(${c.id})">Remind</button></div>`;}).join('');
+    :pend.map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));return`<div class="info-row"><div class="info-icon">💸</div><div style="flex:1"><div class="info-value">${c.first} ${c.last}</div><div class="info-label">${j.date} · $${c.price}</div></div><button style="background:var(--warn);color:white;border:none;border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:800" onclick="payReminder(${c.id})">Remind</button></div>`;}).join('');
 }
 
 // ============ MODAL / TOAST ============
@@ -2618,7 +2615,7 @@ function renderFinance(){
   // BY CLIENT
   const clientRevMap={};
   doneJobs.forEach(j=>{
-    const c=clients.find(x=>x.id===j.clientId);
+    const c=clients.find(x=>String(x.id)===String(j.clientId));
     if(!c)return;
     const key=c.id;
     if(!clientRevMap[key])clientRevMap[key]={name:`${c.first} ${c.last}`,rev:0,jobs:0,paid:0};
@@ -2661,7 +2658,7 @@ function exportFinance(){
   txt+=`${'─'.repeat(30)}\n`;
   txt+=`BY CLIENT:\n`;
   const map={};
-  mJobs.forEach(j=>{const c=clients.find(x=>x.id===j.clientId);if(!c)return;if(!map[c.id])map[c.id]={name:`${c.first} ${c.last}`,rev:0,jobs:0};map[c.id].rev+=(c.price||0);map[c.id].jobs++;});
+  mJobs.forEach(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));if(!c)return;if(!map[c.id])map[c.id]={name:`${c.first} ${c.last}`,rev:0,jobs:0};map[c.id].rev+=(c.price||0);map[c.id].jobs++;});
   Object.values(map).sort((a,b)=>b.rev-a.rev).forEach(x=>{txt+=`• ${x.name}: $${x.rev} (${x.jobs} job${x.jobs!==1?'s':''})\n`;});
   txt+=`\nGenerated by AV Cleaning app 🧹`;
   navigator.clipboard?.writeText(txt).catch(()=>{});
