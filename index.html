@@ -71,10 +71,17 @@
         
         onSnapshot(collection(db, 'clients'), (snap) => {
           if (!snap.empty) {
-            clients = snap.docs.map(d => d.data());
-            if (typeof renderClients === 'function') renderClients();
-            if (typeof renderSched === 'function') renderSched(); if (typeof renderStats === 'function') renderStats();
+            const fbClients = snap.docs.map(d => d.data());
+            // Merge: add Firebase clients that aren't already in hardcoded list
+            fbClients.forEach(fc => {
+              const exists = clients.find(c => String(c.id) === String(fc.id));
+              if (!exists) clients.push(fc);
+              else Object.assign(exists, fc); // update existing
+            });
           }
+          if (typeof renderClients === 'function') renderClients();
+          if (typeof renderSched === 'function') renderSched();
+          if (typeof renderStats === 'function') renderStats();
         });
 
         onSnapshot(collection(db, 'contacts'), (snap) => {
