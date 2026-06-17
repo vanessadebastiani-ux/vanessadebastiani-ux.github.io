@@ -61,45 +61,56 @@
     } catch(e) { console.error('fbLoad error:', e); return []; }
   };
 
-  // Auth state
+  // Load all data from Firestore. Safe to call multiple times (guards against double listeners).
+  window._fbListenersStarted = false;
+  window.loadFirestoreData = function() {
+    if (window._fbListenersStarted) return; // only attach listeners once
+    if (!window._fb) return;
+    window._fbListenersStarted = true;
+    try {
+      const { db, collection, onSnapshot } = window._fb;
+
+      onSnapshot(collection(db, 'clients'), (snap) => {
+        if (!snap.empty) {
+          const fbClients = snap.docs.map(d => d.data());
+          // Merge: add Firebase clients that aren't already in hardcoded list
+          fbClients.forEach(fc => {
+            const exists = clients.find(c => String(c.id) === String(fc.id));
+            if (!exists) clients.push(fc);
+            else Object.assign(exists, fc); // update existing
+          });
+        }
+        if (typeof renderClients === 'function') renderClients();
+        if (typeof renderSched === 'function') renderSched();
+        if (typeof renderStats === 'function') renderStats();
+      });
+
+      onSnapshot(collection(db, 'contacts'), (snap) => {
+        if (!snap.empty) {
+          contacts = snap.docs.map(d => d.data());
+          if (typeof renderCRM === 'function') renderCRM();
+        }
+      });
+
+      onSnapshot(collection(db, 'jobs'), (snap) => {
+        if (!snap.empty) {
+          jobs = snap.docs.map(d => d.data());
+          if (typeof renderSched === 'function') renderSched();
+          if (typeof renderStats === 'function') renderStats();
+        }
+      });
+
+    } catch(e) {
+      console.error('Load error:', e);
+      window._fbListenersStarted = false; // allow retry if it failed
+    }
+  };
+
+  // Auth state — load data when Firebase confirms a signed-in user
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       window._fbUser = user;
-      // Load all data from Firestore
-      try {
-        const { db, collection, onSnapshot } = window._fb;
-        
-        onSnapshot(collection(db, 'clients'), (snap) => {
-          if (!snap.empty) {
-            const fbClients = snap.docs.map(d => d.data());
-            // Merge: add Firebase clients that aren't already in hardcoded list
-            fbClients.forEach(fc => {
-              const exists = clients.find(c => String(c.id) === String(fc.id));
-              if (!exists) clients.push(fc);
-              else Object.assign(exists, fc); // update existing
-            });
-          }
-          if (typeof renderClients === 'function') renderClients();
-          if (typeof renderSched === 'function') renderSched();
-          if (typeof renderStats === 'function') renderStats();
-        });
-
-        onSnapshot(collection(db, 'contacts'), (snap) => {
-          if (!snap.empty) {
-            contacts = snap.docs.map(d => d.data());
-            if (typeof renderCRM === 'function') renderCRM();
-          }
-        });
-
-        onSnapshot(collection(db, 'jobs'), (snap) => {
-          if (!snap.empty) {
-            jobs = snap.docs.map(d => d.data());
-            if (typeof renderSched === 'function') renderSched(); 
-            if (typeof renderStats === 'function') renderStats();
-            }
-        });
-
-      } catch(e) { console.error('Load error:', e); }
+      window.loadFirestoreData();
     } else {
       window._fbUser = null;
     }
@@ -1216,6 +1227,7 @@ function doSignIn(){
         if(pinRole==='team'&&r==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
         if(save){localStorage.setItem('av_saved_user',JSON.stringify({email,role:r,name}));}
         else{localStorage.removeItem('av_saved_user');}
+        if(window.loadFirestoreData) window.loadFirestoreData();
         finishLogin({role:r,name});
       })
       .catch((err)=>{
@@ -1226,6 +1238,7 @@ function doSignIn(){
         if(pinRole==='team'&&user.role==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
         if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));}
         else{localStorage.removeItem('av_saved_user');}
+        if(window.loadFirestoreData) window.loadFirestoreData();
         finishLogin(user);
       });
     return;
@@ -1290,6 +1303,8 @@ function doRegister(){
 function finishLogin(user){
   document.getElementById('pin-screen').classList.add('hidden');
   doLogin(user.role, user.name);
+  // Ensure Firestore data loads on every login path (saved user, Face ID, fallback, etc.)
+  if(window.loadFirestoreData) window.loadFirestoreData();
   // Confirm Firebase connection
   setTimeout(()=>{
     if(!window.fbSave){
