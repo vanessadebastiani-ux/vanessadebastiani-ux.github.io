@@ -1731,6 +1731,7 @@ function saveEditClient(){
   c.freq=document.getElementById('ec-freq').value;
   c.price=parseInt(document.getElementById('ec-price').value)||0;
   c.notes=document.getElementById('ec-notes').value.trim();
+  if(window.fbSave) fbSave('clients', c.id, c);
   closeModal('edit-client-modal');
   showToast(`${first} updated! ✓`);
   renderClients(); renderStats();
