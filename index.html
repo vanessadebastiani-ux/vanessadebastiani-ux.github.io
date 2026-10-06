@@ -1114,6 +1114,7 @@ let clients=[
 let teamMembers=[
   {name:'Juliano',role:'Lead Cleaner',clockEnabled:false,clockIn:null,clockOut:null},
   {name:'Renata',role:'Cleaner',clockEnabled:true,clockIn:null,clockOut:null},
+  {name:'Nara',role:'Cleaner',clockEnabled:false,clockIn:null,clockOut:null},
   {name:'Vanessa (Owner)',role:'Owner',clockEnabled:false,clockIn:null,clockOut:null}
 ];
 
@@ -1156,9 +1157,34 @@ function submitBooking(){
 // ============ PASSWORD AUTH + FACE ID ============
 let pinRole=null;
 
+// Team logins: email -> display name (used to greet + filter schedule)
+const TEAM_EMAILS={'elisnaraamorim@gmail.com':'Nara','juliano.a.santos.93@gmail.com':'Juliano','angelarenatavieira@gmail.com':'Renata'};
+let curUserName='';
+// Resolve a login email to a team member name (Juliano, Renata, Nara...)
+function teamNameFor(email){
+  email=(email||'').toLowerCase();
+  if(TEAM_EMAILS[email]) return TEAM_EMAILS[email];
+  const prefix=email.split('@')[0];
+  const names=(typeof teamMembersLocal!=='undefined'?teamMembersLocal:[]).map(n=>n.replace(/\s*\(.*\)/,''));
+  const hit=names.find(n=>prefix.includes(n.toLowerCase()));
+  return hit||prefix;
+}
+// Team members only see jobs assigned to them; management sees everything
+function myJobs(){
+  if(role==='team'){
+    const me=(curUserName||'').toLowerCase();
+    if(!me) return [];
+    return jobs.filter(j=>(j.assign||'').toLowerCase().split(/\s*&\s*|\s*,\s*/).some(a=>a.replace(/\s*\(.*\)/,'')===me));
+  }
+  return jobs;
+}
+
 // Pre-seeded users
 let users=[
-  {name:'Vanessa',email:'vanessa@avcleaninglv.com',pass:'65Nasa00*',role:'owner'}
+  {name:'Vanessa',email:'vanessa@avcleaninglv.com',pass:'65Nasa00*',role:'owner'},
+  {name:'Nara',email:'elisnaraamorim@gmail.com',pass:'123456',role:'team'},
+  {name:'Juliano',email:'juliano.a.santos.93@gmail.com',pass:'123456',role:'team'},
+  {name:'Renata',email:'angelarenatavieira@gmail.com',pass:'123456',role:'team'}
 ];
 
 // ---- helpers ----
@@ -1222,7 +1248,7 @@ function doSignIn(){
       .then((userCred)=>{
         // Determine role based on email
         const r = email === 'avcleaninglasvegas@gmail.com' ? 'owner' : 'team';
-        const name = email.split('@')[0];
+        const name = teamNameFor(email);
         if(pinRole==='owner'&&r!=='owner'){errEl.textContent='Esta conta é só de Team Member.';return;}
         if(pinRole==='team'&&r==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
         if(save){localStorage.setItem('av_saved_user',JSON.stringify({email,role:r,name}));}
@@ -1238,8 +1264,11 @@ function doSignIn(){
         if(pinRole==='team'&&user.role==='owner'){errEl.textContent='Use o login Management para esta conta.';return;}
         if(save){localStorage.setItem('av_saved_user',JSON.stringify({email:user.email,role:user.role,name:user.name}));}
         else{localStorage.removeItem('av_saved_user');}
-        if(window.loadFirestoreData) window.loadFirestoreData();
-        finishLogin(user);
+        // First login of a pre-set user: create the Firebase account so the schedule can load
+        const {createUserWithEmailAndPassword}=window._fb;
+        const go=()=>{if(window.loadFirestoreData) window.loadFirestoreData();finishLogin(user);};
+        if(createUserWithEmailAndPassword) createUserWithEmailAndPassword(auth,email,pass).then(go).catch(go);
+        else go();
       });
     return;
   }
@@ -1374,6 +1403,7 @@ async function tryFaceID(){
     if(assertion){
       const user=users.find(u=>u.email.toLowerCase()===savedUser.email.toLowerCase());
       if(user) finishLogin(user);
+      else if(savedUser&&savedUser.role&&savedUser.name) finishLogin(savedUser);
       else showToast('User not found. Please sign in manually.');
     }
   }catch(e){
@@ -1382,7 +1412,7 @@ async function tryFaceID(){
 }
 
 function doLogin(r, name){
-  role=r;
+  role=r;curUserName=name||'';
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('role-label').textContent=r==='owner'?`💼 ${name||'Manager'}`:`📋 ${name||'Team'}`;
   weekStart=weekOf(new Date());
@@ -1449,7 +1479,7 @@ function renderDay(){
   let h='';
   for(let i=0;i<7;i++){
     const d=addD(dayStripWeek,i),ds=fmt(d);
-    const has=jobs.some(j=>j.date===ds),isSel=ds===fmt(selDate);
+    const has=myJobs().some(j=>j.date===ds),isSel=ds===fmt(selDate);
     h+=`<div class="date-chip ${isSel?'active':''} ${has?'has-jobs':''}" onclick="pickDate('${ds}')"><span class="dn">${DAYS[d.getDay()]}</span><span class="dd">${d.getDate()}</span></div>`;
   }
   document.getElementById('date-strip').innerHTML=h;
@@ -1465,7 +1495,7 @@ function changeDay(dir){selDate=addD(selDate,dir);dayStripWeek=weekOf(selDate);c
 function goToday(){selDate=new Date();dayStripWeek=weekOf(selDate);document.getElementById('schedule-sub').textContent='Today';renderDay();}
 
 function renderJobs(){
-  const ds=fmt(selDate),dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+  const ds=fmt(selDate),dj=myJobs().filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
   const el=document.getElementById('jobs-list');
   if(!dj.length){el.innerHTML=`<div style="text-align:center;padding:36px 20px;color:var(--soft)"><div style="font-size:38px;margin-bottom:10px">🌴</div><div style="font-size:14px;font-weight:800">No jobs today!</div></div>`+(role==='owner'?`<button class="btn-primary" style="margin-top:0" onclick="openAddJob()">+ Add Job</button>`:'');return;}
   el.innerHTML=dj.map(j=>{
@@ -1492,7 +1522,7 @@ function renderWeek(){
   const td=fmt(new Date());let h='';
   for(let i=0;i<7;i++){
     const d=addD(weekStart,i),ds=fmt(d);
-    const dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+    const dj=myJobs().filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
     const pills=dj.map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));const rec=j.recurrence&&j.recurrence!=='none';return`<div class="wpill ${j.status==='done'?'done-p':''}" draggable="${role==='owner'}" ondragstart="onDragStart(event,${j.id})" onclick="openJob(${j.id})"><div><div class="wn">${c?.first} ${c?.last}</div><div class="wt">${fmtT(j.time)}${rec?' 🔁':''}</div></div>${role==='owner'?'<span class="wdrag">⠿</span>':''}</div>`;}).join('');
     h+=`<div class="week-row"><div class="wday-label"><div class="wday-name">${DAYS[d.getDay()]}</div><div class="wday-num ${ds===td?'today-n':''}">${d.getDate()}</div></div><div class="week-cells ${!dj.length?'empty':''}" id="wc-${ds}">${pills||`<div style="font-size:11px;color:#cce0f0;padding:4px;font-weight:700">–</div>`}</div></div>`;
   }
@@ -1511,11 +1541,11 @@ function renderMonth(){
   for(let i=0;i<firstDow;i++)cells.push({d:addD(first,-(firstDow-i)),o:true});
   for(let n=1;n<=last.getDate();n++)cells.push({d:new Date(y,m,n),o:false});
   while(cells.length%7!==0)cells.push({d:addD(cells[cells.length-1].d,1),o:true});
-  document.getElementById('month-grid').innerHTML=cells.map(({d,o})=>{const ds=fmt(d),dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const MAX=2;const shown=dj.slice(0,MAX).map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));return`<div style="display:flex;align-items:center;gap:2px;margin-bottom:1px"><div style="width:5px;height:5px;border-radius:50%;background:${j.status==='done'?'var(--success)':'var(--blue)'};flex-shrink:0"></div><span style="font-size:9px;font-weight:700;color:var(--blue-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px">${c?.first||''}</span></div>`;}).join('');const more=dj.length>MAX?`<div class="mmore">+${dj.length-MAX}</div>`:'';return`<div class="month-cell ${o?'other-m':''} ${ds===td?'today-c':''}" onclick="${!o?`openMDay('${ds}')`:'void 0'}" id="mc-${ds}"><div class="mcnum">${d.getDate()}</div>${shown}${more}</div>`;}).join('');
+  document.getElementById('month-grid').innerHTML=cells.map(({d,o})=>{const ds=fmt(d),dj=myJobs().filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const MAX=2;const shown=dj.slice(0,MAX).map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));return`<div style="display:flex;align-items:center;gap:2px;margin-bottom:1px"><div style="width:5px;height:5px;border-radius:50%;background:${j.status==='done'?'var(--success)':'var(--blue)'};flex-shrink:0"></div><span style="font-size:9px;font-weight:700;color:var(--blue-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px">${c?.first||''}</span></div>`;}).join('');const more=dj.length>MAX?`<div class="mmore">+${dj.length-MAX}</div>`:'';return`<div class="month-cell ${o?'other-m':''} ${ds===td?'today-c':''}" onclick="${!o?`openMDay('${ds}')`:'void 0'}" id="mc-${ds}"><div class="mcnum">${d.getDate()}</div>${shown}${more}</div>`;}).join('');
   document.querySelectorAll('.month-cell:not(.other-m)').forEach(el=>{el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag-over');});el.addEventListener('dragleave',()=>el.classList.remove('drag-over'));el.addEventListener('drop',e=>{e.preventDefault();const ds=el.id.replace('mc-','');onDrop(ds);el.classList.remove('drag-over');});});
 }
 function openMDay(ds){
-  const dj=jobs.filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const d=new Date(ds+'T12:00:00');
+  const dj=myJobs().filter(j=>j.date===ds).sort((a,b)=>a.time.localeCompare(b.time));const d=new Date(ds+'T12:00:00');
   document.getElementById('mday-title').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   document.getElementById('mday-sub').textContent=`${dj.length} job${dj.length!==1?'s':''}`;
   document.getElementById('mday-body').innerHTML=!dj.length?`<div style="text-align:center;padding:24px;color:var(--soft)"><div style="font-size:30px">🌴</div><div style="font-weight:800;margin-top:8px">Free day!</div></div>`+(role==='owner'?`<button class="btn-primary" onclick="closeModal('mday-modal');openAddJob()">+ Add Job</button>`:''):dj.map(j=>{const c=clients.find(x=>String(x.id)===String(j.clientId));return`<div class="job-card ${j.status}" style="margin-bottom:8px" onclick="closeModal('mday-modal');openJob(${j.id})"><div class="job-header"><div class="job-name">${c?.first} ${c?.last}</div><div class="job-time">${fmtT(j.time)}</div></div><div class="job-addr">👤 ${j.assign}${j.recurrence&&j.recurrence!=='none'?' 🔁':''}</div></div>`;}).join('')+(role==='owner'?`<button class="btn-primary" style="background:none;color:var(--blue-dark);border:2px dashed var(--blue)" onclick="closeModal('mday-modal');openAddJob()">+ Add Job</button>`:'');
@@ -1524,11 +1554,11 @@ function openMDay(ds){
 
 // ============ DRAG & DROP ============
 function onDragStart(e,id){dragId=id;e.dataTransfer.effectAllowed='move';}
-function onDrop(ds){if(!dragId)return;const j=jobs.find(x=>x.id===dragId);if(!j||j.date===ds){dragId=null;return;}j.date=ds;const c=clients.find(x=>String(x.id)===String(j.clientId));const nd=new Date(ds+'T12:00:00');showToast(`${c?.first} moved to ${nd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} 📅`);dragId=null;renderSched();renderStats();}
+function onDrop(ds){if(!dragId)return;const j=jobs.find(x=>String(x.id)===String(dragId));if(!j||j.date===ds){dragId=null;return;}j.date=ds;const c=clients.find(x=>String(x.id)===String(j.clientId));const nd=new Date(ds+'T12:00:00');showToast(`${c?.first} moved to ${nd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} 📅`);dragId=null;renderSched();renderStats();}
 
 // ============ JOB DETAIL ============
 function openJob(id){
-  curJob=id;const j=jobs.find(x=>x.id===id),c=clients.find(x=>String(x.id)===String(j.clientId));
+  curJob=id;const j=jobs.find(x=>String(x.id)===String(id)),c=clients.find(x=>String(x.id)===String(j.clientId));
   document.getElementById('modal-name').textContent=`${c.first} ${c.last}`;
   const recTxt=j.recurrence&&j.recurrence!=='none'?` · 🔁 ${j.recurrence==='weekly'?'Weekly':j.recurrence==='biweekly'?'Bi-weekly':'Monthly'}`:'';
   document.getElementById('modal-time').textContent=`${fmtT(j.time)} · ${j.assign}${recTxt}`;
@@ -1576,7 +1606,7 @@ function openJob(id){
     if(j.paid){
       payActions.classList.add('hidden');
     } else {
-      payActions.classList.remove('hidden');
+      if(role==='owner'){payActions.classList.remove('hidden');}else{payActions.classList.add('hidden');}
       paidBtn.textContent='💰 Mark as Paid';paidBtn.disabled=false;
     }
   } else {
@@ -1614,13 +1644,13 @@ function renderClockUI(j){
     elapsed.textContent='';
   }
 }
-function clockIn(){const j=jobs.find(x=>x.id===curJob);j.clockIn=fmtTime12();renderClockUI(j);showToast(`⏱️ Clocked in at ${j.clockIn}!`);}
-function clockOut(){const j=jobs.find(x=>x.id===curJob);j.clockOut=fmtTime12();renderClockUI(j);showToast(`✅ Clocked out at ${j.clockOut}!`);}
+function clockIn(){const j=jobs.find(x=>String(x.id)===String(curJob));j.clockIn=fmtTime12();renderClockUI(j);showToast(`⏱️ Clocked in at ${j.clockIn}!`);}
+function clockOut(){const j=jobs.find(x=>String(x.id)===String(curJob));j.clockOut=fmtTime12();renderClockUI(j);showToast(`✅ Clocked out at ${j.clockOut}!`);}
 
-function toggleCheck(i){const j=jobs.find(x=>x.id===curJob);j.cl[i].d=!j.cl[i].d;document.getElementById('cb-'+i).className='check-box'+(j.cl[i].d?' checked':'');document.getElementById('cb-'+i).textContent=j.cl[i].d?'✓':'';document.getElementById('cl-'+i).className='check-label'+(j.cl[i].d?' checked':'');}
+function toggleCheck(i){const j=jobs.find(x=>String(x.id)===String(curJob));j.cl[i].d=!j.cl[i].d;document.getElementById('cb-'+i).className='check-box'+(j.cl[i].d?' checked':'');document.getElementById('cb-'+i).textContent=j.cl[i].d?'✓':'';document.getElementById('cl-'+i).className='check-label'+(j.cl[i].d?' checked':'');}
 
 async function completeJob(){
-  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));
+  const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));
   j.status='done';j.notifSent={...j.notifSent,complete:true};
   if(window.fbSave) fbSave('jobs', j.id, j);
   const btn=document.getElementById('complete-btn');
@@ -1633,7 +1663,7 @@ async function completeJob(){
   renderSched();renderStats();
 }
 function markAsPaid(){
-  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));
+  const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));
   j.paid=true;
   if(window.fbSave) fbSave('jobs', j.id, j);
   document.getElementById('pay-actions').classList.add('hidden');
@@ -1641,16 +1671,16 @@ function markAsPaid(){
   renderStats();
 }
 async function sendPayReminder(){
-  const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));
+  const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));
   const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} for your recent cleaning is due. You can pay via Zelle/Venmo. Thank you so much! 🧹 — AV Cleaning LV`;
   await sendRealSMS(c.phone, msg, 'payment');
   showToast(`💬 Reminder sent to ${c.first}!`);
 }
-function copyVal(f){const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));const m={address:c.address,gate:c.gate,door:c.door};navigator.clipboard?.writeText(m[f]).catch(()=>{});showToast('Copied! 📋');}
+function copyVal(f){const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));const m={address:c.address,gate:c.gate,door:c.door};navigator.clipboard?.writeText(m[f]).catch(()=>{});showToast('Copied! 📋');}
 
 // ============ OMW ============
 function selMins(m){selMinsVal=m;document.querySelectorAll('.min-chip').forEach(el=>el.classList.toggle('selected',el.textContent.includes(m)));const btn=document.getElementById('omw-btn');btn.classList.remove('dis');btn.textContent=`🚗 On My Way — ${m} min away`;}
-async function sendOMW(){if(!selMinsVal)return;const j=jobs.find(x=>x.id===curJob),c=clients.find(x=>String(x.id)===String(j.clientId));const msg=`Hi ${c.first}! 🚗 Your AV Cleaning team is on the way and will arrive in approximately ${selMinsVal} minutes. See you soon! 🧹✨`;const sent=await sendRealSMS(c.phone,msg,'omw');document.getElementById('omw-picker').classList.add('hidden');document.getElementById('omw-sent').classList.remove('hidden');document.getElementById('omw-msg').textContent=`${c.first} notified — arriving in ~${selMinsVal} min`;showToast(sent?`📲 ${c.first} notified! ~${selMinsVal} min away`:`📋 OMW logged (check SMS settings)`);}
+async function sendOMW(){if(!selMinsVal)return;const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));const msg=`Hi ${c.first}! 🚗 Your AV Cleaning team is on the way and will arrive in approximately ${selMinsVal} minutes. See you soon! 🧹✨`;const sent=await sendRealSMS(c.phone,msg,'omw');document.getElementById('omw-picker').classList.add('hidden');document.getElementById('omw-sent').classList.remove('hidden');document.getElementById('omw-msg').textContent=`${c.first} notified — arriving in ~${selMinsVal} min`;showToast(sent?`📲 ${c.first} notified! ~${selMinsVal} min away`:`📋 OMW logged (check SMS settings)`);}
 function resetOMW(){selMinsVal=null;document.getElementById('omw-picker')?.classList.remove('hidden');document.getElementById('omw-sent')?.classList.add('hidden');document.querySelectorAll('.min-chip').forEach(el=>el.classList.remove('selected'));const btn=document.getElementById('omw-btn');if(btn){btn.classList.add('dis');btn.textContent='🚗 On My Way';}}
 
 // ============ CLIENTS ============
@@ -1675,7 +1705,7 @@ function renderClients(){
 }
 function filterClients(){renderClients();}
 function openClient(id){
-  const c=clients.find(x=>x.id===id);
+  const c=clients.find(x=>String(x.id)===String(id));
   document.getElementById('cm-name').textContent=`${c.first} ${c.last}`;
   document.getElementById('cm-freq').textContent=`${c.freq} · $${c.price}/visit`;
   const next=jobs.filter(j=>j.clientId===c.id&&j.date>=fmt(new Date())).sort((a,b)=>a.date.localeCompare(b.date))[0];
@@ -1697,11 +1727,11 @@ function openClient(id){
     `<button class="btn-danger" onclick="deleteClient(${c.id})">🗑️ Delete Client</button>`;
   openModal('client-modal');
 }
-async function payReminder(id){const c=clients.find(x=>x.id===id);const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} with AV Cleaning LV is due. Thank you so much — we appreciate your business! 🧹✨`;await sendRealSMS(c.phone,msg,'payment');showToast(`Reminder sent to ${c.first}! 💬`);}
+async function payReminder(id){const c=clients.find(x=>String(x.id)===String(id));const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} with AV Cleaning LV is due. Thank you so much — we appreciate your business! 🧹✨`;await sendRealSMS(c.phone,msg,'payment');showToast(`Reminder sent to ${c.first}! 💬`);}
 function schedFor(id){closeModal('client-modal');openAddJob(id);}
 
 function openEditClient(id){
-  const c=clients.find(x=>x.id===id);
+  const c=clients.find(x=>String(x.id)===String(id));
   document.getElementById('ec-id').value=id;
   document.getElementById('ec-first').value=c.first;
   document.getElementById('ec-last').value=c.last;
@@ -1718,7 +1748,7 @@ function openEditClient(id){
 
 function saveEditClient(){
   const id=parseInt(document.getElementById('ec-id').value);
-  const c=clients.find(x=>x.id===id);
+  const c=clients.find(x=>String(x.id)===String(id));
   if(!c){showToast('Client not found!');return;}
   const first=document.getElementById('ec-first').value.trim();
   const last=document.getElementById('ec-last').value.trim();
@@ -1738,7 +1768,7 @@ function saveEditClient(){
 }
 
 function deleteClient(id){
-  const c=clients.find(x=>x.id===id);
+  const c=clients.find(x=>String(x.id)===String(id));
   if(!confirm(`Delete ${c.first} ${c.last}? This cannot be undone.`)) return;
   clients=clients.filter(x=>x.id!==id);
   if(window.fbDelete) fbDelete('clients', id);
@@ -1773,7 +1803,7 @@ function selRec(r){
 }
 
 // ============ ADD JOB ============
-let teamMembersLocal=['Juliano','Renata','Vanessa (Owner)'];
+let teamMembersLocal=['Juliano','Renata','Nara','Vanessa (Owner)'];
 function renderTeamChips(){
   const el=document.getElementById('team-chips');if(!el)return;
   el.innerHTML=teamMembersLocal.map(m=>`<div class="team-chip ${selectedTeam.includes(m)?'selected':''}" onclick="toggleTeam('${m}')">${selectedTeam.includes(m)?'✓ ':''} ${m}</div>`).join('');
@@ -2284,7 +2314,7 @@ function renderCRM(){
 }
 
 function openContact(id){
-  const c=contacts.find(x=>x.id===id);
+  const c=contacts.find(x=>String(x.id)===String(id));
   const statusInfo={active:'✅ Active Client',lead:'🔥 Lead',inactive:'💤 Inactive',past:'📁 Past Client'};
   document.getElementById('cont-name').textContent=`${c.first} ${c.last}`;
   document.getElementById('cont-status-label').textContent=statusInfo[c.status]||c.status;
@@ -2309,13 +2339,13 @@ function openContact(id){
 }
 
 function changeContactStatus(id,status){
-  const c=contacts.find(x=>x.id===id);c.status=status;
+  const c=contacts.find(x=>String(x.id)===String(id));c.status=status;
   closeModal('contact-modal');renderCRM();
   showToast(`${c.first} marked as ${status}! ✓`);
 }
 
 function deleteContact(id){
-  const c=contacts.find(x=>x.id===id);
+  const c=contacts.find(x=>String(x.id)===String(id));
   if(!confirm(`Delete ${c.first} ${c.last}? This cannot be undone.`))return;
   contacts=contacts.filter(x=>x.id!==id);
   if(window.fbDelete) fbDelete('contacts', id);
@@ -2324,7 +2354,7 @@ function deleteContact(id){
 }
 
 function buildQuoteForContact(id){
-  const c=contacts.find(x=>x.id===id);
+  const c=contacts.find(x=>String(x.id)===String(id));
   closeModal('contact-modal');
   showTab('quote');
   setTimeout(()=>{
@@ -2363,7 +2393,7 @@ function addPhoto(event){
   if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
-    const j=jobs.find(x=>x.id===curJob);
+    const j=jobs.find(x=>String(x.id)===String(curJob));
     if(!j.photos)j.photos=[];
     j.photos.push(e.target.result);
     renderPhotos(j);
@@ -2373,7 +2403,7 @@ function addPhoto(event){
   event.target.value='';
 }
 function removePhoto(i){
-  const j=jobs.find(x=>x.id===curJob);
+  const j=jobs.find(x=>String(x.id)===String(curJob));
   j.photos.splice(i,1);
   renderPhotos(j);
 }
@@ -2382,7 +2412,7 @@ function removePhoto(i){
 let ejSelectedTeam=[];
 
 function openEditJob(id){
-  const j=jobs.find(x=>x.id===id);
+  const j=jobs.find(x=>String(x.id)===String(id));
   document.getElementById('ej-id').value=id;
   // populate client dropdown
   const sel=document.getElementById('ej-client');
@@ -2418,7 +2448,7 @@ function ejAddTeamMember(){
 
 function saveEditJob(){
   const id=parseInt(document.getElementById('ej-id').value);
-  const j=jobs.find(x=>x.id===id);
+  const j=jobs.find(x=>String(x.id)===String(id));
   if(!j){showToast('Job not found!');return;}
   if(!ejSelectedTeam.length){showToast('Select at least one team member!');return;}
   const newClientId=parseInt(document.getElementById('ej-client').value);
@@ -2463,7 +2493,7 @@ function saveEditJob(){
 }
 
 function openDeleteSeries(id){
-  const j=jobs.find(x=>x.id===id);
+  const j=jobs.find(x=>String(x.id)===String(id));
   if(!j) return;
   const hasSeries=j.seriesId&&jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date).length>1;
   const mgmt=document.getElementById('job-mgmt-btns');
@@ -2485,7 +2515,7 @@ function openDeleteSeries(id){
   }
 }
 function doDeleteJob(id,allFuture){
-  const j=jobs.find(x=>x.id===id);
+  const j=jobs.find(x=>String(x.id)===String(id));
   if(!j) return;
   if(allFuture&&j.seriesId){
     const toDelete=jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date);
@@ -2505,7 +2535,7 @@ function resetJobMgmtBtns(id){
   mgmt.innerHTML=`<button class="btn-secondary" style="color:var(--blue-dark);border-color:var(--blue-mid);margin-top:6px" onclick="openEditJob(${id})">✏️ Edit Job</button><button class="btn-danger" onclick="openDeleteSeries(${id})">🗑️ Delete Job</button>`;
 }
 function openMoveSeries(id, newDate){
-  const j=jobs.find(x=>x.id===id);
+  const j=jobs.find(x=>String(x.id)===String(id));
   if(!j) return;
   const hasSeries=j.seriesId&&jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date).length>1;
   if(hasSeries){
