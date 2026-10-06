@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiB2aWV3Qm94PSIwIDAgMTgwIDE4MCI+CiAgPHJlY3Qgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxODAiIGZpbGw9IndoaXRlIiByeD0iMzYiLz4KICA8cmVjdCB4PSIyMiIgeT0iMzciIHdpZHRoPSIxMzYiIGhlaWdodD0iMTA2IiByeD0iMzQiIGZpbGw9IndoaXRlIiBzdHlsZT0iZmlsdGVyOmRyb3Atc2hhZG93KDAgNHB4IDE2cHggcmdiYSg0NiwxMjIsMTc2LDAuMTgpKSIvPgogIDxyZWN0IHg9IjIyIiB5PSIzNyIgd2lkdGg9IjEzNiIgaGVpZ2h0PSIxMDYiIHJ4PSIzNCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2UwZWVmNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI5MCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjU0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMmU3YWIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iYXV0byI+QVY8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjEyNCIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZpbGw9IiMyZTdhYjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJhdXRvIj5DbGVhbmluZzwvdGV4dD4KPC9zdmc+">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiB2aWV3Qm94PSIwIDAgMTgwIDE4MCI+CiAgPHJlY3Qgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxODAiIGZpbGw9IndoaXRlIiByeD0iMzYiLz4KICA8cmVjdCB4PSIyMiIgeT0iMzciIHdpZHRoPSIxMzYiIGhlaWdodD0iMTA2IiByeD0iMzQiIGZpbGw9IndoaXRlIiBzdHlsZT0iZmlsdGVyOmRyb3Atc2hhZG93KDAgNHB4IDE2cHggcmdiYSg0NiwxMjIsMTc2LDAuMTgpKSIvPgogIDxyZWN0IHg9IjIyIiB5PSIzNyIgd2lkdGg9IjEzNiIgaGVpZ2h0PSIxMDYiIHJ4PSIzNCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2UwZWVmNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI5MCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjU0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMmU3YWIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iYXV0byI+QVY8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjEyNCIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZpbGw9IiMyZTdhYjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJhdXRvIj5DbGVhbmluZzwvdGV4dD4KPC9zdmc+">
@@ -465,6 +468,7 @@ textarea.form-input{resize:none;min-height:80px}
         <button class="faceid-btn" id="faceid-btn" onclick="tryFaceID()" style="display:none">
           <span style="font-size:22px">🔒</span> Sign in with Face ID / Touch ID
         </button>
+        <div style="text-align:center;font-size:10px;color:var(--soft);margin-top:14px;font-weight:700">v2 · Oct 5 · team schedule</div>
       </div>
 
       <!-- REGISTER -->
@@ -1391,6 +1395,8 @@ async function tryFaceID(){
   if(!saved||!credIdB64)return;
   try{
     const savedUser=JSON.parse(saved);
+    if(pinRole==='team'&&savedUser.role==='owner'){document.getElementById('si-error').textContent='Face ID está salvo pra conta Management. Entre com email e senha.';return;}
+    if(pinRole==='owner'&&savedUser.role!=='owner'){document.getElementById('si-error').textContent='Face ID está salvo pra uma conta Team. Entre com email e senha.';return;}
     const chal=new Uint8Array(32);
     crypto.getRandomValues(chal);
     const credId=Uint8Array.from(atob(credIdB64),c=>c.charCodeAt(0));
