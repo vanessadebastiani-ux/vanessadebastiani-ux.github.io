@@ -299,6 +299,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--dark);min-
 .omw-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s}
 .omw-btn.dis{opacity:.35;pointer-events:none}
 .omw-sent{background:#e8f9f1;border-radius:14px;padding:14px;text-align:center;margin-top:4px}
+.min-custom{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.min-custom input{flex:1;min-width:0;padding:10px 12px;border:2px solid var(--blue-mid);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:var(--dark);background:#fff}
+.min-custom span{font-size:13px;font-weight:800;color:var(--soft)}
+.late-box{margin-top:14px;border-top:1px dashed var(--blue-mid);padding-top:4px}
+.late-btn{width:100%;padding:13px;background:#E8833A;color:#fff;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer}
+.late-btn.dis{opacity:.35;pointer-events:none}
+.late-sent{background:#fff4ea;border-radius:14px;padding:12px;text-align:center;margin-top:8px;font-size:12px;font-weight:800;color:#B35A1A}
+.remind-btn{width:100%;margin-top:10px;padding:11px;background:#fff;color:var(--blue-dark);border:2px solid var(--blue-mid);border-radius:14px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer}
 
 /* TEAM CHIPS */
 .team-chip{display:inline-flex;align-items:center;gap:6px;background:var(--blue-pale);border:2px solid var(--blue-mid);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--dark);cursor:pointer;transition:all .15s}
@@ -815,13 +823,30 @@ Landscaping</textarea>
       <div id="omw-section">
         <div id="omw-picker"><div class="omw-label">🚗 How far are you?</div>
           <div class="omw-mins">
+            <div class="min-chip" onclick="selMins(10)">10 min</div>
             <div class="min-chip" onclick="selMins(15)">15 min</div>
             <div class="min-chip" onclick="selMins(20)">20 min</div>
             <div class="min-chip" onclick="selMins(30)">30 min</div>
           </div>
+          <div class="min-custom"><input type="number" inputmode="numeric" min="1" max="180" id="omw-custom" placeholder="Other: type minutes" oninput="customMins(this.value)"><span>min</span></div>
           <button class="omw-btn dis" id="omw-btn" onclick="sendOMW()">🚗 On My Way</button>
         </div>
         <div class="omw-sent hidden" id="omw-sent"><div style="font-size:22px">🚗</div><div style="font-weight:800;color:var(--success);margin-top:4px">On My Way sent!</div><div style="font-size:12px;color:var(--soft);margin-top:2px" id="omw-msg"></div></div>
+        <!-- RUNNING LATE -->
+        <div class="late-box" id="late-section">
+          <div class="omw-label">⏰ Running late? How many minutes?</div>
+          <div class="omw-mins">
+            <div class="min-chip late-chip" onclick="selLate(10)">10 min</div>
+            <div class="min-chip late-chip" onclick="selLate(15)">15 min</div>
+            <div class="min-chip late-chip" onclick="selLate(20)">20 min</div>
+            <div class="min-chip late-chip" onclick="selLate(30)">30 min</div>
+          </div>
+          <div class="min-custom"><input type="number" inputmode="numeric" min="1" max="240" id="late-custom" placeholder="Other: type minutes" oninput="customLate(this.value)"><span>min</span></div>
+          <div class="min-custom"><span>New arrival time</span><input type="time" id="late-time" oninput="lateTimeEdited()"></div>
+          <button class="late-btn dis" id="late-btn" onclick="sendLate()">⏰ Send Running Late</button>
+          <div class="late-sent hidden" id="late-sent"></div>
+        </div>
+        <button class="remind-btn hidden" id="remind-btn" onclick="sendDayBeforeReminder()">📅 Send reminder for this cleaning</button>
       </div>
       <div class="cl-title">Cleaning Checklist</div>
       <div id="modal-checklist"></div>
@@ -1662,7 +1687,7 @@ async function completeJob(){
   const btn=document.getElementById('complete-btn');
   btn.textContent='✅ Completed!';btn.className='btn-primary done-btn';btn.disabled=true;
   document.getElementById('pay-actions').classList.remove('hidden');
-  const msg=`Hi ${c.first}! ✅ Your cleaning is all done! We hope everything looks amazing 🧹✨ If you love our work, we'd really appreciate a Google review — it means the world to us! Thank you for choosing AV Cleaning LV 💙`;
+  const msg=brandSMS(`Hi ${c.first}, your cleaning is all done! Thank you for choosing us. Questions? Call (702) 210-8380.`);
   await sendRealSMS(c.phone, msg, 'complete');
   notifications.unshift({type:'complete',msg:`Job complete → ${c.first} ${c.last}`,sub:`$${c.price} pending payment`,time:'Just now',sent:true});
   showToast(`✅ ${c.first}'s job complete! Client notified 📲`);
@@ -1678,16 +1703,41 @@ function markAsPaid(){
 }
 async function sendPayReminder(){
   const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));
-  const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} for your recent cleaning is due. You can pay via Zelle/Venmo. Thank you so much! 🧹 — AV Cleaning LV`;
-  await sendRealSMS(c.phone, msg, 'payment');
-  showToast(`💬 Reminder sent to ${c.first}!`);
+  const d=new Date(j.date+'T12:00:00').toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
+  const msg=brandSMS(`Hi ${c.first}, thank you for choosing us! Your balance of $${c.price} for your ${d} cleaning is due. We accept Zelle, Venmo or cash.`);
+  const sent=await sendRealSMS(c.phone, msg, 'payment');
+  showToast(sent?`💬 Reminder sent to ${c.first}!`:'📋 Not sent — check SMS settings');
 }
 function copyVal(f){const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));const m={address:c.address,gate:c.gate,door:c.door};navigator.clipboard?.writeText(m[f]).catch(()=>{});showToast('Copied! 📋');}
 
 // ============ OMW ============
-function selMins(m){selMinsVal=m;document.querySelectorAll('.min-chip').forEach(el=>el.classList.toggle('selected',el.textContent.includes(m)));const btn=document.getElementById('omw-btn');btn.classList.remove('dis');btn.textContent=`🚗 On My Way — ${m} min away`;}
-async function sendOMW(){if(!selMinsVal)return;const j=jobs.find(x=>String(x.id)===String(curJob)),c=clients.find(x=>String(x.id)===String(j.clientId));const msg=`Hi ${c.first}! 🚗 Your AV Cleaning team is on the way and will arrive in approximately ${selMinsVal} minutes. See you soon! 🧹✨`;const sent=await sendRealSMS(c.phone,msg,'omw');document.getElementById('omw-picker').classList.add('hidden');document.getElementById('omw-sent').classList.remove('hidden');document.getElementById('omw-msg').textContent=`${c.first} notified — arriving in ~${selMinsVal} min`;showToast(sent?`📲 ${c.first} notified! ~${selMinsVal} min away`:`📋 OMW logged (check SMS settings)`);}
-function resetOMW(){selMinsVal=null;document.getElementById('omw-picker')?.classList.remove('hidden');document.getElementById('omw-sent')?.classList.add('hidden');document.querySelectorAll('.min-chip').forEach(el=>el.classList.remove('selected'));const btn=document.getElementById('omw-btn');if(btn){btn.classList.add('dis');btn.textContent='🚗 On My Way';}}
+// ============ SMS TEXTS (match the Twilio-registered samples) ============
+const SMS_BRAND='AV Cleaning LV: ';
+const SMS_STOP=' Reply STOP to opt out.';
+function brandSMS(body){return SMS_BRAND+body+SMS_STOP;}
+function toMins(t){if(!t)return null;const m=String(t).trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);if(!m)return null;let h=+m[1];const mi=+m[2];if(m[3]){const pm=m[3].toUpperCase()==='PM';if(h===12)h=0;if(pm)h+=12;}return h*60+mi;}
+function minsTo24(n){n=((n%1440)+1440)%1440;return`${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;}
+function curJobAndClient(){const j=jobs.find(x=>String(x.id)===String(curJob));const c=j&&clients.find(x=>String(x.id)===String(j.clientId));return{j,c};}
+
+// ============ OMW ============
+function selMins(m){selMinsVal=m;document.querySelectorAll('#omw-picker .min-chip').forEach(el=>el.classList.toggle('selected',parseInt(el.textContent)===m));const ci=document.getElementById('omw-custom');if(ci&&+ci.value!==m)ci.value='';const btn=document.getElementById('omw-btn');btn.classList.remove('dis');btn.textContent=`🚗 On My Way — ${m} min away`;}
+function customMins(v){const m=parseInt(v,10);document.querySelectorAll('#omw-picker .min-chip').forEach(el=>el.classList.remove('selected'));const btn=document.getElementById('omw-btn');if(!m||m<1){selMinsVal=null;btn.classList.add('dis');btn.textContent='🚗 On My Way';return;}selMinsVal=m;btn.classList.remove('dis');btn.textContent=`🚗 On My Way — ${m} min away`;}
+async function sendOMW(){if(!selMinsVal)return;const{j,c}=curJobAndClient();if(!c)return;const arrive=minsTo24(toMins(fmtTime12())+selMinsVal);const msg=brandSMS(`Hi ${c.first}, our team is on the way and will arrive around ${fmtT(arrive)}.`);const sent=await sendRealSMS(c.phone,msg,'omw');if(sent){j.notifSent={...j.notifSent,omw:true};if(window.fbSave)fbSave('jobs',j.id,j);}document.getElementById('omw-picker').classList.add('hidden');document.getElementById('omw-sent').classList.remove('hidden');document.getElementById('omw-msg').textContent=`${c.first} notified — arriving around ${fmtT(arrive)}`;showToast(sent?`📲 ${c.first} notified! Arriving ~${fmtT(arrive)}`:`📋 Not sent — check SMS settings`);}
+function resetOMW(){selMinsVal=null;lateMinsVal=null;document.getElementById('omw-picker')?.classList.remove('hidden');document.getElementById('omw-sent')?.classList.add('hidden');document.querySelectorAll('#omw-section .min-chip').forEach(el=>el.classList.remove('selected'));['omw-custom','late-custom','late-time'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const btn=document.getElementById('omw-btn');if(btn){btn.classList.add('dis');btn.textContent='🚗 On My Way';}const lb=document.getElementById('late-btn');if(lb){lb.classList.add('dis');lb.textContent='⏰ Send Running Late';}document.getElementById('late-sent')?.classList.add('hidden');const rb=document.getElementById('remind-btn');if(rb)rb.classList.toggle('hidden',role!=='owner');}
+
+// ============ RUNNING LATE (editable minutes + arrival time) ============
+let lateMinsVal=null;
+function lateBase(){const{j}=curJobAndClient();const sched=j&&toMins(j.time);const now=toMins(fmtTime12());return sched!=null?Math.max(sched,now):now;}
+function applyLate(m){lateMinsVal=m;const lt=document.getElementById('late-time');lt.value=minsTo24(lateBase()+m);updLateBtn();}
+function selLate(m){document.querySelectorAll('.late-chip').forEach(el=>el.classList.toggle('selected',parseInt(el.textContent)===m));const ci=document.getElementById('late-custom');if(ci&&+ci.value!==m)ci.value='';applyLate(m);}
+function customLate(v){const m=parseInt(v,10);document.querySelectorAll('.late-chip').forEach(el=>el.classList.remove('selected'));if(!m||m<1){lateMinsVal=null;document.getElementById('late-time').value='';updLateBtn();return;}applyLate(m);}
+function lateTimeEdited(){document.querySelectorAll('.late-chip').forEach(el=>el.classList.remove('selected'));const v=document.getElementById('late-time').value;const n=toMins(v);if(n==null){lateMinsVal=null;updLateBtn();return;}const d=n-lateBase();lateMinsVal=d>0?d:null;const ci=document.getElementById('late-custom');if(ci)ci.value=lateMinsVal||'';updLateBtn();}
+function updLateBtn(){const b=document.getElementById('late-btn');const v=document.getElementById('late-time').value;if(!v){b.classList.add('dis');b.textContent='⏰ Send Running Late';return;}b.classList.remove('dis');b.textContent=`⏰ Send Running Late — arriving ${fmtT(v)}`;}
+async function sendLate(){const v=document.getElementById('late-time').value;if(!v)return;const{j,c}=curJobAndClient();if(!c)return;const msg=brandSMS(`Hi ${c.first}, we're running a little late. New arrival time is ${fmtT(v)}. Sorry for the wait!`);const sent=await sendRealSMS(c.phone,msg,'late');if(sent){j.notifSent={...j.notifSent,late:true};j.lateArrival=fmtT(v);if(window.fbSave)fbSave('jobs',j.id,j);}const box=document.getElementById('late-sent');box.textContent=sent?`⏰ ${c.first} notified — new arrival ${fmtT(v)}`:'Not sent — check SMS settings';box.classList.remove('hidden');showToast(sent?`⏰ ${c.first} told: arriving ${fmtT(v)}`:'📋 Not sent — check SMS settings');}
+
+// ============ DAY-BEFORE REMINDER (manual) ============
+function reminderText(c,j){const d=new Date(j.date+'T12:00:00');const ds=d.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});return brandSMS(`Hi ${c.first}, reminder that your cleaning is tomorrow, ${ds}, at ${fmtT(j.time)}. Questions? Call (702) 210-8380.`);}
+async function sendDayBeforeReminder(){const{j,c}=curJobAndClient();if(!c)return;const sent=await sendRealSMS(c.phone,reminderText(c,j),'reminder');if(sent){j.notifSent={...j.notifSent,reminder:true};if(window.fbSave)fbSave('jobs',j.id,j);}showToast(sent?`📅 Reminder sent to ${c.first}!`:'📋 Not sent — check SMS settings');}
 
 // ============ CLIENTS ============
 function getLastVisit(clientId){
@@ -1733,7 +1783,7 @@ function openClient(id){
     `<button class="btn-danger" onclick="deleteClient(${c.id})">🗑️ Delete Client</button>`;
   openModal('client-modal');
 }
-async function payReminder(id){const c=clients.find(x=>String(x.id)===String(id));const msg=`Hi ${c.first}! 💙 Just a friendly reminder that your balance of $${c.price} with AV Cleaning LV is due. Thank you so much — we appreciate your business! 🧹✨`;await sendRealSMS(c.phone,msg,'payment');showToast(`Reminder sent to ${c.first}! 💬`);}
+async function payReminder(id){const c=clients.find(x=>String(x.id)===String(id));const msg=brandSMS(`Hi ${c.first}, thank you for choosing us! Your balance of $${c.price} is due. We accept Zelle, Venmo or cash.`);const sent=await sendRealSMS(c.phone,msg,'payment');showToast(sent?`Reminder sent to ${c.first}! 💬`:'📋 Not sent — check SMS settings');}
 function schedFor(id){closeModal('client-modal');openAddJob(id);}
 
 function openEditClient(id){
@@ -2725,9 +2775,12 @@ function exportFinance(){
 }
 
 // ============ TWILIO / SMS INTEGRATION ============
+// Paste the Make.com webhook URL here once the Twilio campaign is approved,
+// so every phone (owner and team) can send texts without setup.
+const SMS_WEBHOOK_URL = '';
 // Sends SMS via Make.com webhook → Twilio
 async function sendRealSMS(phone, message, type='sms') {
-  const webhookUrl = localStorage.getItem('av_make_webhook');
+  const webhookUrl = localStorage.getItem('av_make_webhook') || SMS_WEBHOOK_URL;
   if (!webhookUrl) {
     showToast('⚙️ Configure Make.com webhook in Settings first!');
     return false;
@@ -2767,7 +2820,7 @@ async function checkAndSend24hReminders() {
     if (!c || !c.phone) continue;
     const d = new Date(j.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    const msg = `Hi ${c.first}! 😊 Just a reminder that AV Cleaning LV will be at your home tomorrow, ${dateStr} at ${fmtT(j.time)}. See you then! Any questions? Just text us 🧹✨`;
+    const msg = reminderText(c, j);
     const sent = await sendRealSMS(c.phone, msg, 'reminder');
     if (sent) {
       j.notifSent = { ...j.notifSent, reminder: true };
