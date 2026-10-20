@@ -1369,9 +1369,7 @@ function finishLogin(user){
       showToast('⚠️ Firebase not connected! Data will not save.');
     }
   }, 2000);
-  if(user.role==='owner'){
-    setTimeout(()=>checkAndSend24hReminders(), 3000);
-  }
+  // Day-before reminders are manual only (📅 button in each job). No automatic texts on login.
 }
 
 // ---- Face ID / Touch ID via WebAuthn ----
@@ -1687,10 +1685,9 @@ async function completeJob(){
   const btn=document.getElementById('complete-btn');
   btn.textContent='✅ Completed!';btn.className='btn-primary done-btn';btn.disabled=true;
   document.getElementById('pay-actions').classList.remove('hidden');
-  const msg=brandSMS(`Hi ${c.first}, your cleaning is all done! Thank you for choosing us. Questions? Call (702) 210-8380.`);
-  await sendRealSMS(c.phone, msg, 'complete');
+  // No automatic text when a job is completed. Texts are only sent when someone taps a send button.
   notifications.unshift({type:'complete',msg:`Job complete → ${c.first} ${c.last}`,sub:`$${c.price} pending payment`,time:'Just now',sent:true});
-  showToast(`✅ ${c.first}'s job complete! Client notified 📲`);
+  showToast(`✅ ${c.first}'s job complete!`);
   renderSched();renderStats();
 }
 function markAsPaid(){
