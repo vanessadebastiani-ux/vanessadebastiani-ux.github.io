@@ -848,7 +848,10 @@ Landscaping</textarea>
 
     <!-- BY CLIENT -->
     <div style="background:#fff;border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:12px">
-      <div class="cl-title" style="margin-top:0;margin-bottom:10px">👥 By Client</div>
+      <div onclick="toggleFinClients()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none">
+        <div class="cl-title" style="margin:0">👥 By Client <span id="fin-clients-count" style="color:var(--soft);font-weight:700"></span></div>
+        <span id="fin-clients-chev" style="font-size:12px;font-weight:800;color:var(--blue-dark)">See all ▼</span>
+      </div>
       <div id="finance-clients"></div>
     </div>
 
@@ -2823,6 +2826,9 @@ let expCat='gas';
 const PAY_PEOPLE=['Renata','Nara'];
 let expPerson='';
 let editingExpId=null;
+let finExpOpen=false,finClientsOpen=false;
+function toggleFinExp(){finExpOpen=!finExpOpen;renderFinance();}
+function toggleFinClients(){finClientsOpen=!finClientsOpen;renderFinance();}
 function setExpEditUI(){
   const b=document.getElementById('exp-save-btn'),c=document.getElementById('exp-cancel-btn');
   if(b)b.textContent=editingExpId?'💾 Save Changes':'+ Add Expense';
@@ -2922,7 +2928,10 @@ function renderExpenses(ms,paid){
       <div style="background:var(--blue-pale);border-radius:8px;height:8px"><div style="height:100%;border-radius:8px;background:var(--danger);opacity:.75;width:${Math.round(x.v/max*100)}%"></div></div>
     </div>`).join('');
   // list
-  document.getElementById('exp-list').innerHTML=!mExp.length
+  const expOpen=finExpOpen||!!editingExpId;
+  const expToggle=mExp.length?`<div onclick="toggleFinExp()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;padding:10px 4px;border-top:1px solid var(--blue-pale);font-size:13px;font-weight:800;color:var(--blue-dark)"><span>📋 ${expOpen?'Hide':'See all'} ${mExp.length} expense${mExp.length!==1?'s':''}</span><span>${expOpen?'▲':'▼'}</span></div>`:'';
+  if(mExp.length&&!expOpen){document.getElementById('exp-list').innerHTML=expToggle;return total;}
+  document.getElementById('exp-list').innerHTML=expToggle+(!mExp.length
     ?`<div style="color:var(--soft);font-size:13px;font-weight:700;text-align:center;padding:6px 0">No expenses this month</div>`
     :mExp.map(e=>{
       const d=new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -2935,7 +2944,7 @@ function renderExpenses(ms,paid){
         </div>
         <div style="font-size:14px;font-weight:800;color:var(--danger);cursor:pointer" onclick="editExpense('${e.id}')">${money(+e.amount||0)} <span style="font-size:12px;color:var(--soft)">✏️</span></div>
         <button onclick="deleteExpense('${e.id}')" style="background:none;border:none;color:var(--soft);font-size:16px;cursor:pointer;padding:4px 6px" aria-label="Delete">✕</button>
-      </div>`;}).join('');
+      </div>`;}).join(''));
   return total;
 }
 
@@ -3046,6 +3055,10 @@ function renderFinance(){
   });
   const clientArr=Object.values(clientRevMap).sort((a,b)=>b.rev-a.rev);
   const maxCRev=Math.max(...clientArr.map(x=>x.rev),1);
+  const fcCount=document.getElementById('fin-clients-count');if(fcCount)fcCount.textContent=clientArr.length?`(${clientArr.length})`:'';
+  const fcChev=document.getElementById('fin-clients-chev');if(fcChev)fcChev.textContent=finClientsOpen?'Hide ▲':'See all ▼';
+  const fcEl=document.getElementById('finance-clients');fcEl.style.marginTop=finClientsOpen?'10px':'0';
+  if(!finClientsOpen){fcEl.innerHTML='';return;}
   document.getElementById('finance-clients').innerHTML=!clientArr.length
     ?`<div style="color:var(--soft);font-size:13px;font-weight:700">No completed jobs this month</div>`
     :clientArr.map(x=>`
