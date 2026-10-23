@@ -14,7 +14,7 @@
 <title>AV Cleaning</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, deleteDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
@@ -38,7 +38,6 @@
     try {
       const { db, doc, setDoc, collection } = window._fb;
       await setDoc(doc(collection(db, colName), String(id)), data);
-      if(colName==='jobs' && typeof showToast==='function') showToast('✅ Job saved to Firebase!');
     } catch(e) { 
       console.error('fbSave error:', e);
       if(typeof showToast==='function') showToast('⚠️ Save error: ' + e.message);
@@ -90,9 +89,18 @@
 
       onSnapshot(collection(db, 'contacts'), (snap) => {
         if (!snap.empty) {
-          contacts = snap.docs.map(d => d.data());
+          // Merge: keep the original contacts and add/update the ones saved in Firebase
+          snap.docs.map(d => d.data()).forEach(fc => {
+            const ex = contacts.find(c => String(c.id) === String(fc.id));
+            if (!ex) contacts.push(fc); else Object.assign(ex, fc);
+          });
           if (typeof renderCRM === 'function') renderCRM();
         }
+      });
+
+      onSnapshot(collection(db, 'quotes'), (snap) => {
+        savedQuotes = snap.docs.map(d => d.data());
+        if (typeof renderSavedQuotes === 'function') renderSavedQuotes();
       });
 
       onSnapshot(collection(db, 'expenses'), (snap) => {
@@ -100,18 +108,35 @@
         if (typeof renderFinance === 'function' && document.getElementById('tab-finance') && !document.getElementById('tab-finance').classList.contains('hidden')) renderFinance();
       });
 
-      onSnapshot(collection(db, 'jobs'), (snap) => {
-        if (!snap.empty) {
-          jobs = snap.docs.map(d => d.data());
-          if (typeof renderSched === 'function') renderSched();
-          if (typeof renderStats === 'function') renderStats();
-        }
+      // Jobs: keep a live listener only for a window around today (last month → 4 months ahead).
+      // Older/later months are fetched once, only when you open them (saves Firebase reads).
+      const pad = n => String(n).padStart(2, '0');
+      const now = new Date();
+      const ws = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const we = new Date(now.getFullYear(), now.getMonth() + 5, 0);
+      const winStart = `${ws.getFullYear()}-${pad(ws.getMonth() + 1)}-01`;
+      const winEnd = `${we.getFullYear()}-${pad(we.getMonth() + 1)}-${pad(we.getDate())}`;
+      window._jobsWindow = { start: winStart, end: winEnd };
+      if (typeof markMonthsLoaded === 'function') markMonthsLoaded(winStart, winEnd);
+      onSnapshot(query(collection(db, 'jobs'), where('date', '>=', winStart), where('date', '<=', winEnd)), (snap) => {
+        const live = snap.docs.map(d => d.data());
+        jobs = [...jobs.filter(j => !j.date || j.date < winStart || j.date > winEnd), ...live];
+        if (typeof renderSched === 'function') renderSched();
+        if (typeof renderStats === 'function') renderStats();
+        if (typeof refreshFinanceIfOpen === 'function') refreshFinanceIfOpen();
       });
 
     } catch(e) {
       console.error('Load error:', e);
       window._fbListenersStarted = false; // allow retry if it failed
     }
+  };
+
+  // Fetch jobs in a date range once (for months outside the live window)
+  window.fbLoadJobsRange = async function(start, end) {
+    const { db, collection } = window._fb;
+    const snap = await getDocs(query(collection(db, 'jobs'), where('date', '>=', start), where('date', '<=', end)));
+    return snap.docs.map(d => d.data());
   };
 
   // Auth state — load data when Firebase confirms a signed-in user
@@ -660,6 +685,13 @@ textarea.form-input{resize:none;min-height:80px}
     <div class="section-title">Quote Builder</div>
     <div class="section-sub">Build & send professional estimates</div>
 
+    <!-- Saved quotes -->
+    <div style="background:#fff;border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:12px">
+      <div class="cl-title" style="margin-top:0;margin-bottom:6px">📂 Saved Quotes</div>
+      <div id="saved-quotes-list"></div>
+    </div>
+    <div id="q-editing-banner" class="hidden" style="background:var(--blue-pale);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:800;color:var(--blue-dark)"></div>
+
     <!-- Client selector -->
     <div style="background:#fff;border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:12px">
       <div class="cl-title" style="margin-top:0">Client Info</div>
@@ -719,6 +751,7 @@ Landscaping</textarea>
     </div>
 
     <button class="btn-primary" onclick="previewQuote()">👁️ Preview & Send Quote</button>
+    <button class="btn-secondary" onclick="saveQuoteToList()" style="color:var(--blue-dark);border-color:var(--blue-mid)">💾 Save Quote</button>
     <button class="btn-secondary" onclick="resetQuote()">🔄 New Quote</button>
   </div>
 
@@ -1179,6 +1212,25 @@ let teamMembers=[
 
 let jobs=[];
 let expenses=[];
+// ---- Jobs loaded per month (see loadFirestoreData) ----
+const loadedJobMonths=new Set();
+function monthsInRange(a,b){const out=[];let [y,m]=a.slice(0,7).split('-').map(Number);const [y2,m2]=b.slice(0,7).split('-').map(Number);while(y<y2||(y===y2&&m<=m2)){out.push(`${y}-${String(m).padStart(2,'0')}`);m++;if(m>12){m=1;y++;}}return out;}
+function markMonthsLoaded(a,b){monthsInRange(a,b).forEach(x=>loadedJobMonths.add(x));}
+function refreshFinanceIfOpen(){const t=document.getElementById('tab-finance');if(t&&!t.classList.contains('hidden')&&typeof renderFinance==='function')renderFinance();}
+function ensureJobsLoaded(start,end){
+  if(!window._jobsWindow||!window.fbLoadJobsRange)return;
+  const need=monthsInRange(start,end).filter(x=>!loadedJobMonths.has(x));
+  if(!need.length)return;
+  need.forEach(x=>loadedJobMonths.add(x));
+  const last=need[need.length-1];const [ly,lm]=last.split('-').map(Number);
+  const endDay=`${last}-${String(new Date(ly,lm,0).getDate()).padStart(2,'0')}`;
+  window.fbLoadJobsRange(need[0]+'-01',endDay).then(list=>{
+    list.forEach(nj=>{const i=jobs.findIndex(j=>String(j.id)===String(nj.id));if(i>=0)jobs[i]=nj;else jobs.push(nj);});
+    if(typeof renderSched==='function'&&tab==='schedule')renderSched();
+    refreshFinanceIfOpen();
+  }).catch(()=>need.forEach(x=>loadedJobMonths.delete(x)));
+}
+let savedQuotes=[];
 let notifications=[];
 
 // ============ HELPERS ============
@@ -1527,6 +1579,10 @@ function setView(v){
 }
 function renderSched(){
   const td=fmt(new Date());
+  // make sure the jobs for the visible dates are loaded
+  if(view==='day'){const ws=dayStripWeek||weekOf(selDate);ensureJobsLoaded(fmt(ws),fmt(addD(ws,6)));}
+  else if(view==='week'&&weekStart){ensureJobsLoaded(fmt(weekStart),fmt(addD(weekStart,6)));}
+  else if(view==='month'&&monthDate){const y=monthDate.getFullYear(),m=monthDate.getMonth();ensureJobsLoaded(fmt(addD(new Date(y,m,1),-7)),fmt(addD(new Date(y,m+1,0),7)));}
   document.getElementById('schedule-sub').textContent=
     view==='day'?(fmt(selDate)===td?'Today':selDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})):
     view==='week'?'Weekly view':'Monthly view';
@@ -2098,7 +2154,64 @@ function addCustomItem(){
   showToast('Item added! ✓');
 }
 
+// ---- Saved quotes (created here or by the assistant) ----
+let curQuoteId=null;
+function qEsc(t){return String(t||'').replace(/[<>&"]/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]));}
+function renderSavedQuotes(){
+  const el=document.getElementById('saved-quotes-list');if(!el)return;
+  const list=[...savedQuotes].sort((a,b)=>String(b.created||b.date||'').localeCompare(String(a.created||a.date||'')));
+  el.innerHTML=!list.length?`<div style="font-size:12px;color:var(--soft);font-weight:700;padding:4px 0">No saved quotes yet</div>`:list.map(q=>{
+    const d=q.date?new Date(q.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+    const on=String(q.id)===String(curQuoteId);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-top:1px solid var(--blue-pale);${on?'background:var(--blue-pale);border-radius:10px;':''}">
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="loadSavedQuote('${q.id}')">
+        <div style="font-size:13px;font-weight:800;color:var(--dark)">${qEsc(q.client||'Client')}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--soft)">${d} · ${qEsc(q.service||'')}${q.by==='assistant'?' · 🤖':''}</div>
+      </div>
+      <div style="font-size:14px;font-weight:800;color:var(--blue-dark);cursor:pointer" onclick="loadSavedQuote('${q.id}')">${q.total?'$'+qEsc(q.total):'—'}</div>
+      <button onclick="deleteSavedQuote('${q.id}')" style="background:none;border:none;color:var(--soft);font-size:16px;cursor:pointer;padding:4px 6px" aria-label="Delete">✕</button>
+    </div>`;}).join('');
+  const b=document.getElementById('q-editing-banner');
+  if(b){const q=savedQuotes.find(x=>String(x.id)===String(curQuoteId));b.classList.toggle('hidden',!q);if(q)b.textContent=`✏️ Editing saved quote: ${q.client||'Client'} — tap 💾 Save Quote to keep changes`;}
+}
+function loadSavedQuote(id){
+  const q=savedQuotes.find(x=>String(x.id)===String(id));if(!q)return;
+  curQuoteId=String(q.id);
+  document.getElementById('q-client-name').value=q.client||'';
+  document.getElementById('q-client-phone').value=q.phone||'';
+  document.getElementById('q-date').value=q.date||fmt(new Date());
+  document.getElementById('q-total-price').value=q.total||'';
+  document.getElementById('q-notes').value=q.notes||'';
+  const ni=document.getElementById('q-not-included');if(ni)ni.value=(q.notIncluded||[]).join('\n');
+  quoteItems=[...(q.items||[])];quoteService=q.service||'Deep Cleaning';
+  document.querySelectorAll('.q-svc-btn').forEach(b=>{b.classList.toggle('selected',(b.getAttribute('onclick')||'').includes(`'${quoteService}'`));});
+  renderQuoteItems();renderSavedQuotes();
+  showToast('Quote loaded 📋 — Preview to send or save PDF');
+}
+function saveQuoteToList(){
+  const client=document.getElementById('q-client-name').value.trim();
+  if(!client){showToast('Type the client name first');return;}
+  const old=savedQuotes.find(x=>String(x.id)===String(curQuoteId));
+  const q={id:old?String(old.id):String(Date.now()),client,phone:document.getElementById('q-client-phone').value.trim(),date:document.getElementById('q-date').value||fmt(new Date()),
+    service:quoteService,items:[...quoteItems],total:String(document.getElementById('q-total-price').value||''),
+    notIncluded:(document.getElementById('q-not-included')?.value||'').split('\n').map(x=>x.trim()).filter(Boolean),
+    notes:document.getElementById('q-notes').value.trim(),created:old?.created||new Date().toISOString(),by:old?.by||'app'};
+  if(old) savedQuotes=savedQuotes.map(x=>String(x.id)===q.id?q:x); else savedQuotes.push(q);
+  curQuoteId=q.id;
+  if(window.fbSave) fbSave('quotes', q.id, q);
+  renderSavedQuotes();showToast(old?'Quote updated 💾':'Quote saved 💾');
+}
+function deleteSavedQuote(id){
+  const q=savedQuotes.find(x=>String(x.id)===String(id));if(!q)return;
+  if(!confirm(`Delete quote for ${q.client||'client'}?`))return;
+  savedQuotes=savedQuotes.filter(x=>String(x.id)!==String(id));
+  if(window.fbDelete) fbDelete('quotes', id);
+  if(String(curQuoteId)===String(id)) curQuoteId=null;
+  renderSavedQuotes();showToast('Quote deleted');
+}
+
 function resetQuote(){
+  curQuoteId=null;
   quoteItems=[];quoteService='Deep Cleaning';
   document.getElementById('q-client-name').value='';
   document.getElementById('q-client-phone').value='';
@@ -2106,7 +2219,7 @@ function resetQuote(){
   document.getElementById('q-total-price').value='';
   document.getElementById('q-date').value=fmt(new Date());
   document.querySelectorAll('.q-svc-btn').forEach((b,i)=>{b.classList.toggle('selected',i===0);});
-  renderQuoteItems();showToast('Quote cleared!');
+  renderQuoteItems();renderSavedQuotes();showToast('Quote cleared!');
 }
 
 function initQuoteTab(){
@@ -2114,7 +2227,7 @@ function initQuoteTab(){
   // populate client datalist
   const dl=document.getElementById('q-client-list');
   dl.innerHTML=contacts.filter(c=>c.status==='active').map(c=>`<option value="${c.first} ${c.last}">`).join('');
-  renderQuoteItems();
+  renderQuoteItems();renderSavedQuotes();
 }
 
 function previewQuote(){
@@ -2428,6 +2541,7 @@ function openContact(id){
 
 function changeContactStatus(id,status){
   const c=contacts.find(x=>String(x.id)===String(id));c.status=status;
+  if(window.fbSave) fbSave('contacts', c.id, c);
   closeModal('contact-modal');renderCRM();
   showToast(`${c.first} marked as ${status}! ✓`);
 }
@@ -2866,6 +2980,7 @@ function renderFinance(){
   document.getElementById('finance-period-label').textContent=
     ms===fmt(new Date()).slice(0,7)?'This month':`${MONTHS[m]} ${y}`;
 
+  ensureJobsLoaded(ms+'-01',ms+'-28');
   const mJobs=jobs.filter(j=>j.date.startsWith(ms));
   const doneJobs=mJobs.filter(j=>j.status==='done');
   const paidJobs=doneJobs.filter(j=>j.paid);
