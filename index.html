@@ -3092,38 +3092,34 @@ function exportFinance(){
 }
 
 // ============ TWILIO / SMS INTEGRATION ============
-// Paste the Make.com webhook URL here once the Twilio campaign is approved,
-// so every phone (owner and team) can send texts without setup.
-const SMS_WEBHOOK_URL = '';
-// Sends SMS via Make.com webhook → Twilio
+// Texts go through the AV assistant bridge (Cloudflare) → Twilio.
+// The bridge only accepts requests from people logged in to this app.
+const SMS_BRIDGE_URL = 'https://av-assistant.still-star-92cb.workers.dev/sms';
 async function sendRealSMS(phone, message, type='sms') {
-  const webhookUrl = localStorage.getItem('av_make_webhook') || SMS_WEBHOOK_URL;
-  if (!webhookUrl) {
-    showToast('⚙️ Configure Make.com webhook in Settings first!');
-    return false;
-  }
-  const rawPhone = phone.replace(/\D/g,'');
+  const rawPhone = String(phone||'').replace(/\D/g,'');
   if (!rawPhone || rawPhone.length < 10) {
     showToast('⚠️ No valid phone number for this client!');
     return false;
   }
   const toPhone = rawPhone.startsWith('1') ? `+${rawPhone}` : `+1${rawPhone}`;
+  const user = window._fb?.auth?.currentUser;
+  if (!user) { showToast('⚠️ Please log out and log in again to send texts'); return false; }
   try {
-    const res = await fetch(webhookUrl, {
+    const token = await user.getIdToken();
+    const res = await fetch(SMS_BRIDGE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({ to: toPhone, message, type })
     });
-    if (res.ok || res.status === 200) {
-      return true;
-    } else {
-      showToast('❌ SMS failed — check Make.com webhook');
-      return false;
-    }
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) return true;
+    showToast('❌ Text not sent: ' + (data.error || ('error ' + res.status)));
+    console.warn('SMS error', res.status, data);
+    return false;
   } catch(e) {
-    // Make.com returns no-cors sometimes; treat network errors as likely success
-    console.warn('SMS fetch error (may still have sent):', e);
-    return true;
+    console.warn('SMS fetch error:', e);
+    showToast('❌ Text not sent — check your internet');
+    return false;
   }
 }
 
@@ -3162,35 +3158,26 @@ initJobs();weekStart=weekOf(new Date());monthDate=new Date();
     <button class="close-modal" onclick="closeModal('sms-settings-modal')">✕</button>
     <div class="modal-header">
       <div class="modal-title">⚙️ SMS Settings</div>
-      <div class="modal-subtitle">Twilio via Make.com</div>
+      <div class="modal-subtitle">Twilio · sent through the AV assistant</div>
     </div>
     <div class="modal-body">
       <div style="background:var(--blue-pale);border-radius:12px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--mid);font-weight:700;line-height:1.6">
-        📋 <strong>Setup:</strong><br>
-        1. Create a Make.com scenario<br>
-        2. Add a Webhook trigger → copy URL<br>
-        3. Add Twilio → Send SMS module<br>
-        4. Map: <code style="background:#dde8f0;padding:1px 4px;border-radius:4px">{{body.to}}</code> and <code style="background:#dde8f0;padding:1px 4px;border-radius:4px">{{body.message}}</code><br>
-        5. Paste your webhook URL below
+        ✅ Texts are sent from the business Twilio number. Nothing to set up here.<br>
+        Every text starts with “AV Cleaning LV:” and ends with “Reply STOP to opt out.”
       </div>
       <div class="form-group">
-        <label class="form-label">Make.com Webhook URL</label>
-        <input class="form-input" id="webhook-url-input" placeholder="https://hook.us1.make.com/xxxx..." style="font-size:12px">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Your Twilio Number (sender)</label>
-        <input class="form-input" id="twilio-from-input" placeholder="+17253305540">
+        <label class="form-label">Send a test text to (your phone)</label>
+        <input class="form-input" id="test-sms-phone" placeholder="(702) 555-0000" inputmode="tel">
       </div>
       <div id="sms-status-box" style="display:none;padding:10px;border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:700;text-align:center"></div>
-      <button class="btn-primary" onclick="saveSMSSettings()">💾 Save Settings</button>
-      <button class="btn-secondary" onclick="testSMS()">📱 Send Test SMS</button>
-      <button class="btn-secondary" onclick="closeModal('sms-settings-modal')">Cancel</button>
+      <button class="btn-primary" onclick="testSMS()">📱 Send Test Text</button>
+      <button class="btn-secondary" onclick="closeModal('sms-settings-modal')">Close</button>
       <div style="margin-top:20px;border-top:1px solid #eef4fa;padding-top:16px">
         <div class="cl-title" style="margin-top:0">📲 SMS Messages</div>
         <div style="font-size:12px;color:var(--mid);font-weight:600;line-height:1.8">
-          <div style="margin-bottom:8px;background:#f5fbff;padding:8px 10px;border-radius:8px;border-left:3px solid var(--blue)"><strong>🔔 24h Reminder</strong> — auto on login</div>
+          <div style="margin-bottom:8px;background:#f5fbff;padding:8px 10px;border-radius:8px;border-left:3px solid var(--blue)"><strong>📅 Day-before Reminder</strong> — button in the job screen</div>
           <div style="margin-bottom:8px;background:#f5fbff;padding:8px 10px;border-radius:8px;border-left:3px solid var(--blue)"><strong>🚗 On My Way</strong> — from job screen</div>
-          <div style="margin-bottom:8px;background:#f5fbff;padding:8px 10px;border-radius:8px;border-left:3px solid var(--success)"><strong>✅ Job Complete</strong> — when marking done</div>
+          <div style="margin-bottom:8px;background:#f5fbff;padding:8px 10px;border-radius:8px;border-left:3px solid var(--warn)"><strong>⏰ Running Late</strong> — from job screen</div>
           <div style="background:#f5fbff;padding:8px 10px;border-radius:8px;border-left:3px solid var(--warn)"><strong>💸 Payment Reminder</strong> — from client card</div>
         </div>
       </div>
@@ -3200,36 +3187,21 @@ initJobs();weekStart=weekOf(new Date());monthDate=new Date();
 
 <script>
 function openSMSSettings(){
-  document.getElementById('webhook-url-input').value=localStorage.getItem('av_make_webhook')||'';
-  document.getElementById('twilio-from-input').value=localStorage.getItem('av_twilio_from')||'';
+  const el=document.getElementById('test-sms-phone');
+  if(el) el.value=localStorage.getItem('av_test_phone')||'';
   document.getElementById('sms-status-box').style.display='none';
   openModal('sms-settings-modal');
 }
-function saveSMSSettings(){
-  const url=document.getElementById('webhook-url-input').value.trim();
-  const from=document.getElementById('twilio-from-input').value.trim();
-  if(url) localStorage.setItem('av_make_webhook',url);
-  if(from) localStorage.setItem('av_twilio_from',from);
-  const box=document.getElementById('sms-status-box');
-  box.style.display='block';box.style.background='#e8f9f1';box.style.color='var(--success)';
-  box.textContent='✅ Settings saved!';
-  showToast('SMS settings saved! 📱');
-}
 async function testSMS(){
-  const url=document.getElementById('webhook-url-input').value.trim();
-  const from=document.getElementById('twilio-from-input').value.trim();
-  if(!url){showToast('Enter the webhook URL first!');return;}
+  const phone=document.getElementById('test-sms-phone').value.trim();
+  if(!phone){showToast('Type your phone number first');return;}
+  try{localStorage.setItem('av_test_phone',phone);}catch(e){}
   const box=document.getElementById('sms-status-box');
   box.style.display='block';box.style.background='var(--blue-pale)';box.style.color='var(--blue-dark)';
   box.textContent='📤 Sending test...';
-  try{
-    await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:from||'+17023001234',message:'✅ AV Cleaning app — SMS test successful! Twilio is connected 🧹',type:'test'})});
-    box.style.background='#e8f9f1';box.style.color='var(--success)';
-    box.textContent='✅ Test sent! Check your phone.';
-  }catch(e){
-    box.style.background='#e8f9f1';box.style.color='var(--success)';
-    box.textContent='✅ Request sent (check Make.com)';
-  }
+  const ok=await sendRealSMS(phone,brandSMS('Test message from the AV Cleaning app. Texts are working!'),'test');
+  box.style.background=ok?'#e8f9f1':'#fdecec';box.style.color=ok?'var(--success)':'var(--danger)';
+  box.textContent=ok?'✅ Test sent! Check your phone.':'❌ Not sent — see the message above';
 }
 </script>
 
