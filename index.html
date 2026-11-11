@@ -2380,7 +2380,10 @@ ${notes?`
 </div>
 <div style="text-align:center;font-size:10px;color:#4a6070;margin-top:6px">Quote valid for 7 days from date of issue. Thank you for choosing AV Cleaning LV! ✨</div>
 
-<script>window.onload=function(){window.print();}<\/script>
+<style>.av-close{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:10px;width:38px;height:38px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:18px;font-weight:700;line-height:38px;text-align:center;cursor:pointer;z-index:9999;padding:0}@media print{.av-close{display:none!important}}</style>
+<button class="av-close" onclick="avBack()" aria-label="Close">✕</button>
+<script>function avBack(){try{window.close();}catch(e){}setTimeout(function(){location.href='https://vanessadebastiani-ux.github.io/';},300);}
+window.onload=function(){window.print();}<\/script>
 </body>
 </html>`;
 
@@ -2533,6 +2536,8 @@ let ejSelectedTeam=[];
 
 function openEditJob(id){
   const j=jobs.find(x=>String(x.id)===String(id));
+  if(!j){showToast('Job not found!');return;}
+  const oldConf=document.getElementById('ej-save-confirm'); if(oldConf) oldConf.remove();
   document.getElementById('ej-id').value=id;
   // populate client dropdown
   const sel=document.getElementById('ej-client');
@@ -2579,16 +2584,17 @@ function saveEditJob(){
   function applyOne(){
     j.clientId=newClientId;j.date=newDate;j.time=newTime;j.assign=newAssign;
     if(window.fbSave) fbSave('jobs',j.id,j);
-    closeModal('edit-job-modal');showToast('Job updated! ✓');renderSched();renderStats();
+    finishEdit();closeModal('edit-job-modal');showToast('Job updated! ✓');renderSched();renderStats();
   }
+  function finishEdit(){ const c=document.getElementById('ej-save-confirm'); if(c) c.remove(); }
   function applyAll(){
-    jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date).forEach(x=>{
-      const diff=dayDiff(j.date,newDate);
+    const baseDate=j.date, diff=dayDiff(baseDate,newDate);
+    jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=baseDate).forEach(x=>{
       x.date=fmt(addD(new Date(x.date+'T12:00:00'),diff));
       x.clientId=newClientId;x.time=newTime;x.assign=newAssign;
       if(window.fbSave) fbSave('jobs',x.id,x);
     });
-    closeModal('edit-job-modal');showToast('All future jobs updated! ✓');renderSched();renderStats();
+    finishEdit();closeModal('edit-job-modal');showToast('All future jobs updated! ✓');renderSched();renderStats();
   }
   if(hasSeries){
     // Show inline confirm at bottom of edit modal
@@ -2663,10 +2669,10 @@ function openMoveSeries(id, newDate){
     document.getElementById('series-modal-sub').textContent='This job is part of a recurring series.';
     document.getElementById('series-btn-this').textContent='📅 Move only this';
     document.getElementById('series-btn-future').textContent='📅 Move this + all future';
-    document.getElementById('series-btn-this').onclick=()=>{ j.date=newDate; closeModal('series-modal'); showToast('Job moved'); renderSched(); renderStats(); };
-    document.getElementById('series-btn-future').onclick=()=>{ const diff=dayDiff(j.date,newDate); jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=j.date).forEach(x=>{x.date=addD(new Date(x.date+'T12:00:00'),diff) instanceof Date?fmt(addD(new Date(x.date+'T12:00:00'),diff)):x.date;}); closeModal('series-modal'); showToast('Series moved'); renderSched(); renderStats(); };
+    document.getElementById('series-btn-this').onclick=()=>{ j.date=newDate; if(window.fbSave) fbSave('jobs',j.id,j); closeModal('series-modal'); showToast('Job moved'); renderSched(); renderStats(); };
+    document.getElementById('series-btn-future').onclick=()=>{ const base=j.date, diff=dayDiff(base,newDate); jobs.filter(x=>x.seriesId===j.seriesId&&x.date>=base).forEach(x=>{x.date=fmt(addD(new Date(x.date+'T12:00:00'),diff)); if(window.fbSave) fbSave('jobs',x.id,x);}); closeModal('series-modal'); showToast('Series moved'); renderSched(); renderStats(); };
     openModal('series-modal');
-  } else { j.date=newDate; showToast('Job moved'); renderSched(); renderStats(); }
+  } else { j.date=newDate; if(window.fbSave) fbSave('jobs',j.id,j); showToast('Job moved'); renderSched(); renderStats(); }
 }
 function dayDiff(d1,d2){ return Math.round((new Date(d2+'T12:00:00')-new Date(d1+'T12:00:00'))/(1000*60*60*24)); }
 function confirmDeleteJob(id){ openDeleteSeries(id); }
