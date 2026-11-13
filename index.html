@@ -820,7 +820,7 @@ Landscaping</textarea>
       <div class="cl-title" style="margin-top:0;margin-bottom:10px">💸 Expenses</div>
       <div class="stats-row" style="margin-bottom:10px">
         <div class="stat-card" style="background:var(--blue-pale);box-shadow:none"><div class="stat-label">Spent</div><div class="stat-value" id="fn-expenses" style="color:var(--danger)">$0</div><div class="stat-sub">this month</div></div>
-        <div class="stat-card" style="background:var(--blue-pale);box-shadow:none"><div class="stat-label">Profit</div><div class="stat-value" id="fn-profit">$0</div><div class="stat-sub">paid − expenses</div></div>
+        <div class="stat-card" style="background:var(--blue-pale);box-shadow:none"><div class="stat-label">Profit</div><div class="stat-value" id="fn-profit">$0</div><div class="stat-sub">revenue − expenses</div><div class="stat-sub" id="fn-profit-cash" style="font-size:11px;margin-top:2px"></div></div>
       </div>
       <div id="exp-cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
       <div id="exp-people-wrap" class="hidden" style="background:var(--blue-pale);border-radius:12px;padding:10px;margin-bottom:8px">
@@ -2825,7 +2825,7 @@ function expBreakdown(list){
   });
   return rows;
 }
-function renderExpenses(ms,paid){
+function renderExpenses(ms,paid,revenue){
   renderExpCats();
   const dateEl=document.getElementById('exp-date');
   if(dateEl&&(!dateEl.value||dateEl.value.slice(0,7)!==ms)){
@@ -2834,7 +2834,10 @@ function renderExpenses(ms,paid){
   }
   const mExp=expenses.filter(e=>(e.date||'').startsWith(ms)).sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
   const total=mExp.reduce((s,e)=>s+(+e.amount||0),0);
-  const profit=paid-total;
+  const profit=(revenue??paid)-total;
+  const cash=paid-total;
+  const cashEl=document.getElementById('fn-profit-cash');
+  if(cashEl)cashEl.textContent=`in hand: ${cash<0?'−':''}${money(Math.abs(cash))}`;
   document.getElementById('fn-expenses').textContent=money(total);
   const pEl=document.getElementById('fn-profit');
   pEl.textContent=(profit<0?'−':'')+money(Math.abs(profit));
@@ -2916,13 +2919,14 @@ function renderFinance(){
   const paidJobs=doneJobs.filter(j=>j.paid);
   const pendingJobs=doneJobs.filter(j=>!j.paid);
 
-  const revenue=paidJobs.reduce((s,j)=>s+(clients.find(c=>String(c.id)===String(j.clientId))?.price||0),0);
-  const paid=revenue;
+  const paid=paidJobs.reduce((s,j)=>s+(clients.find(c=>String(c.id)===String(j.clientId))?.price||0),0);
   const pending=pendingJobs.reduce((s,j)=>s+(clients.find(c=>String(c.id)===String(j.clientId))?.price||0),0);
-  const avg=paidJobs.length?Math.round(revenue/paidJobs.length):0;
+  // Revenue = everything done this month (paid + awaiting payment)
+  const revenue=paid+pending;
+  const avg=doneJobs.length?Math.round(revenue/doneJobs.length):0;
 
   document.getElementById('finance-revenue').textContent=`$${revenue.toLocaleString()}`;
-  document.getElementById('fn-jobs').textContent=paidJobs.length;
+  document.getElementById('fn-jobs').textContent=doneJobs.length;
   document.getElementById('fn-avg').textContent=`$${avg}`;
   document.getElementById('fn-paid').textContent=`$${paid.toLocaleString()}`;
   document.getElementById('fn-pending').textContent=`$${pending.toLocaleString()}`;
@@ -2961,7 +2965,7 @@ function renderFinance(){
     </div>`).join('');
 
   // EXPENSES + PROFIT
-  renderExpenses(ms,paid);
+  renderExpenses(ms,paid,revenue);
 
   // BY CLIENT
   const clientRevMap={};
